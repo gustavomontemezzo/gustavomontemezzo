@@ -449,11 +449,16 @@ async def criar_aula(aula: AulaCreate):
     c = conn.cursor()
 
     # Coletar todas as fotos enviadas nos últimos 60 segundos
-    agora = datetime.now().timestamp()
-    fotos_recentes = [
-        str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
-        if (agora - f.stat().st_mtime) < 60 and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
-    ]
+    fotos_recentes = []
+    try:
+        agora = datetime.now().timestamp()
+        fotos_recentes = [
+            str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
+            if f.is_file() and (agora - f.stat().st_mtime) < 60
+            and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
+        ]
+    except Exception as e:
+        print(f"Erro ao coletar fotos: {e}")
 
     ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
     resumo = ia_result.get("resumo", "")
