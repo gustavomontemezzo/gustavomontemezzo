@@ -843,6 +843,44 @@ async def enviar_notificacao_manual(msg: PushMensagem):
     enviar_push_todos(msg.titulo, msg.corpo)
     return {"ok": True}
 
+# ─── Migração de dados ───────────────────────────────────────────────────────
+
+@app.post("/api/migrar")
+async def migrar_dados(payload: dict):
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        for a in payload.get("aulas", []):
+            c.execute("""INSERT OR IGNORE INTO aulas
+                (id,data,materia,trimestre,capitulo,conteudo,fonte,resumo,criado_em,pagina_ini,pagina_fim)
+                VALUES (:id,:data,:materia,:trimestre,:capitulo,:conteudo,:fonte,:resumo,:criado_em,:pagina_ini,:pagina_fim)
+            """, a)
+        for p in payload.get("quiz_perguntas", []):
+            c.execute("""INSERT OR IGNORE INTO quiz_perguntas
+                (id,aula_id,materia,trimestre,pergunta,alternativas,correta,explicacao,nivel)
+                VALUES (:id,:aula_id,:materia,:trimestre,:pergunta,:alternativas,:correta,:explicacao,:nivel)
+            """, p)
+        for r in payload.get("quiz_resultados", []):
+            c.execute("""INSERT OR IGNORE INTO quiz_resultados
+                (id,pergunta_id,resposta,correta,respondido_em)
+                VALUES (:id,:pergunta_id,:resposta,:correta,:respondido_em)
+            """, r)
+        for g in payload.get("guias_prova", []):
+            c.execute("""INSERT OR IGNORE INTO guias_prova
+                (id,materia,trimestre,topicos,pagina_ini,pagina_fim,guia_html,criado_em)
+                VALUES (:id,:materia,:trimestre,:topicos,:pagina_ini,:pagina_fim,:guia_html,:criado_em)
+            """, g)
+        for s in payload.get("streaks", []):
+            c.execute("""INSERT OR IGNORE INTO streaks (id,data,registros)
+                VALUES (:id,:data,:registros)
+            """, s)
+        conn.commit()
+        return {"ok": True, "aulas": len(payload.get("aulas",[])),
+                "perguntas": len(payload.get("quiz_perguntas",[])),
+                "resultados": len(payload.get("quiz_resultados",[]))}
+    finally:
+        conn.close()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
