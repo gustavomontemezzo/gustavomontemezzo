@@ -481,11 +481,10 @@ async def criar_aula(aula: AulaCreate):
                   p["correta"], p.get("explicacao", "")))
 
         hoje = date.today().isoformat()
-        existe_streak = c.execute("SELECT id FROM streaks WHERE usuario=? AND data=?", (usuario, hoje)).fetchone()
-        if existe_streak:
-            c.execute("UPDATE streaks SET registros = registros + 1 WHERE usuario=? AND data=?", (usuario, hoje))
-        else:
+        try:
             c.execute("INSERT INTO streaks (usuario, data, registros) VALUES (?, ?, 1)", (usuario, hoje))
+        except Exception:
+            c.execute("UPDATE streaks SET registros = registros + 1 WHERE usuario=? AND data=?", (usuario, hoje))
 
         conn.commit()
         conn.close()
