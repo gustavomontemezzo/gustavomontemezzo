@@ -47,13 +47,21 @@ if ENV_FILE.exists():
 
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
-# Matérias a extrair (pode filtrar por argumento)
-MATERIAS_ALVO = [
-    "Biologia", "Física", "Matemática", "Química",
-    "História", "Geografia", "Língua Portuguesa",
-    "Língua Inglesa", "Língua Espanhola",
-    "Filosofia", "Sociologia", "Arte"
-]
+# Matérias por usuário
+MATERIAS_POR_USUARIO = {
+    "tiago": [
+        "Biologia", "Física", "Matemática", "Química",
+        "História", "Geografia", "Língua Portuguesa",
+        "Língua Inglesa", "Língua Espanhola",
+        "Filosofia", "Sociologia", "Arte", "Literatura"
+    ],
+    "henrique": [
+        "Matemática", "Língua Portuguesa", "Ciências",
+        "História", "Geografia", "Arte",
+        "Língua Inglesa", "Educação Física"
+    ],
+}
+MATERIAS_ALVO = MATERIAS_POR_USUARIO.get("tiago", [])  # será sobrescrito no main()
 
 # ─── Log ─────────────────────────────────────────────────────────────────────
 
@@ -314,13 +322,13 @@ class AgenteComputerUse:
                 model="claude-opus-4-5",
                 max_tokens=4096,
                 tools=[{
-                    "type": "computer_20241022",
+                    "type": "computer_20250124",
                     "name": "computer",
                     "display_width_px": 2408,
                     "display_height_px": 1506,
                 }],
                 messages=mensagens,
-                betas=["computer-use-2024-10-22"],
+                betas=["computer-use-2025-01-24"],
                 system="""Você é um agente de extração de conteúdo educacional.
 Sua tarefa é navegar o app Meu Bernoulli 4.0 e extrair conteúdo didático.
 IMPORTANTE:
@@ -365,6 +373,10 @@ IMPORTANTE:
 
             mensagens.append({"role": "user", "content": resultados_tools})
 
+            # Manter apenas as últimas 4 mensagens para não estourar o limite
+            if len(mensagens) > 5:
+                mensagens = [mensagens[0]] + mensagens[-4:]
+
         return resultado_final
 
 # ─── Tarefas de extração ──────────────────────────────────────────────────────
@@ -388,7 +400,7 @@ def extrair_feed(agente: AgenteComputerUse) -> list:
     ]
     """
 
-    resultado = agente.executar_tarefa(prompt, max_turnos=15)
+    resultado = agente.executar_tarefa(prompt, max_turnos=8)
     log(f"Feed extraído: {len(resultado)} caracteres")
     return resultado
 
@@ -422,7 +434,7 @@ def extrair_ebook_materia(agente: AgenteComputerUse, materia: str) -> list:
     CONTEÚDO: [texto extraído do e-book, mínimo 200 palavras se disponível]
     """
 
-    resultado = agente.executar_tarefa(prompt, max_turnos=25)
+    resultado = agente.executar_tarefa(prompt, max_turnos=10)
 
     if resultado and "CAPÍTULO:" in resultado:
         partes = resultado.split("CONTEÚDO:", 1)
@@ -461,7 +473,7 @@ def extrair_tarefas(agente: AgenteComputerUse) -> list:
     ]
     """
 
-    return agente.executar_tarefa(prompt, max_turnos=15)
+    return agente.executar_tarefa(prompt, max_turnos=8)
 
 # ─── Função principal ─────────────────────────────────────────────────────────
 
@@ -477,6 +489,8 @@ def main():
 
     USUARIO_ATIVO = args.usuario
     nome = USUARIO_ATIVO.capitalize()
+    global MATERIAS_ALVO
+    MATERIAS_ALVO = MATERIAS_POR_USUARIO.get(USUARIO_ATIVO, MATERIAS_POR_USUARIO["tiago"])
 
     print("\n" + "⚽"*30)
     print("  AGENTE AUTOMÁTICO BERNOULLI")

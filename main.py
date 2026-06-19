@@ -85,11 +85,20 @@ MSGS_LEMBRETE = {
     ],
 }
 
-MATERIAS = [
-    "Arte", "Biologia", "Filosofia", "Física", "Geografia",
-    "História", "Língua Espanhola", "Língua Inglesa",
-    "Língua Portuguesa", "Literatura", "Matemática", "Química", "Sociologia", "Redação"
-]
+MATERIAS_POR_USUARIO = {
+    "tiago": [
+        "Arte", "Biologia", "Filosofia", "Física", "Geografia",
+        "História", "Língua Espanhola", "Língua Inglesa",
+        "Língua Portuguesa", "Literatura", "Matemática", "Química", "Sociologia", "Redação"
+    ],
+    "henrique": [
+        "Arte", "Ciências", "Educação Digital", "Educação Física",
+        "Ensino Religioso", "Filosofia", "Geografia", "História",
+        "Língua Espanhola", "Língua Inglesa", "Língua Portuguesa",
+        "Matemática"
+    ],
+}
+MATERIAS = MATERIAS_POR_USUARIO["tiago"]  # fallback
 
 TRIMESTRES = ["1º Trimestre", "2º Trimestre", "3º Trimestre"]
 
@@ -393,8 +402,9 @@ async def painel_pais():
 # --- Matérias e estrutura ---
 
 @app.get("/api/materias")
-async def listar_materias():
-    return {"materias": MATERIAS, "trimestres": TRIMESTRES}
+async def listar_materias(usuario: str = "tiago"):
+    materias = MATERIAS_POR_USUARIO.get(usuario, MATERIAS)
+    return {"materias": materias, "trimestres": TRIMESTRES}
 
 # --- Aulas ---
 
