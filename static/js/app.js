@@ -311,12 +311,14 @@ async function registrarAula(event) {
   };
 
   try {
-    // Enviar foto ANTES da aula para o Claude poder usá-la
+    // Enviar todas as fotos ANTES da aula para o Claude poder usá-las
     const fotoInput = document.getElementById('input-foto');
-    if (fotoInput.files[0]) {
-      const formData = new FormData();
-      formData.append('file', fotoInput.files[0]);
-      await fetch('/api/upload', { method: 'POST', body: formData });
+    if (fotoInput.files.length > 0) {
+      for (const file of Array.from(fotoInput.files)) {
+        const formData = new FormData();
+        formData.append('file', file);
+        await fetch('/api/upload', { method: 'POST', body: formData });
+      }
     }
 
     const result = await post('/api/aulas', data);
@@ -348,12 +350,15 @@ async function registrarAula(event) {
 
 function previewFoto(input) {
   const preview = document.getElementById('foto-preview');
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.innerHTML = `<img src="${e.target.result}" class="foto-preview-img" alt="Preview">`;
-    };
-    reader.readAsDataURL(input.files[0]);
+  preview.innerHTML = '';
+  if (input.files && input.files.length > 0) {
+    Array.from(input.files).forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.innerHTML += `<img src="${e.target.result}" class="foto-preview-img" alt="Foto ${i+1}" style="margin:4px;max-width:120px;border-radius:8px;">`;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
 

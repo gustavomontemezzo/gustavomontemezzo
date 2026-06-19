@@ -184,8 +184,8 @@ Ex: Hoje estudamos fotossíntese. O prof explicou que as plantas usam luz solar 
           <label>📷 Foto do caderno ou apostila (opcional)</label>
           <div class="upload-area" id="upload-area" onclick="document.getElementById('input-foto').click()">
             <div class="upload-icon">📸</div>
-            <div class="upload-text">Toque para tirar foto ou escolher imagem</div>
-            <input type="file" id="input-foto" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(this)">
+            <div class="upload-text">Toque para adicionar fotos (pode selecionar várias)</div>
+            <input type="file" id="input-foto" accept="image/*" multiple style="display:none" onchange="previewFoto(this)">
           </div>
           <div id="foto-preview"></div>
         </div>

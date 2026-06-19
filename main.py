@@ -317,7 +317,7 @@ PERFIS_USUARIOS = {
 }
 
 def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: str,
-                         usuario: str = "tiago", foto_path: str = None) -> dict:
+                         usuario: str = "tiago", fotos: list = None) -> dict:
     if not ANTHROPIC_API_KEY:
         return {
             "resumo": f"📚 Resumo de {materia} - {capitulo}: {conteudo[:200]}...",
@@ -329,17 +329,19 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
 
     conteudo_msg = []
 
-    # Adicionar foto se existir
-    if foto_path and Path(foto_path).exists():
+    # Adicionar fotos se existirem
+    if fotos:
         import base64
-        with open(foto_path, "rb") as f:
-            img_data = base64.standard_b64encode(f.read()).decode("utf-8")
-        ext = Path(foto_path).suffix.lower()
-        media_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"
-        conteudo_msg.append({
-            "type": "image",
-            "source": {"type": "base64", "media_type": media_type, "data": img_data}
-        })
+        for fp in fotos[:5]:  # máximo 5 fotos
+            if Path(fp).exists():
+                with open(fp, "rb") as f:
+                    img_data = base64.standard_b64encode(f.read()).decode("utf-8")
+                ext = Path(fp).suffix.lower()
+                media_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"
+                conteudo_msg.append({
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": media_type, "data": img_data}
+                })
 
     prompt = f"""Você é um professor criativo e exigente.
 Seu aluno é {perfil['nome']}, {perfil['idade']} anos, {perfil['serie']}, {perfil['escola']}.
@@ -353,7 +355,7 @@ CONTEÚDO ESTUDADO:
 ---
 {conteudo[:3000]}
 ---
-{f"(Há também uma foto do caderno/apostila acima — use o conteúdo da imagem para enriquecer o resumo e o quiz.)" if foto_path else ""}
+{f"(Há {len(fotos)} foto(s) do caderno/apostila acima — leia o conteúdo de todas as imagens e use-as para enriquecer o resumo e o quiz.)" if fotos else ""}
 
 TAREFA:
 1. Crie um RESUMO CRIATIVO (máx. 200 palavras) do conteúdo.
@@ -446,13 +448,14 @@ async def criar_aula(aula: AulaCreate):
     conn = get_db()
     c = conn.cursor()
 
-    # Verificar se há foto recém enviada para usar na geração
-    foto_path = None
-    ultima_foto = sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
-    if ultima_foto and (datetime.now().timestamp() - ultima_foto[0].stat().st_mtime) < 30:
-        foto_path = str(ultima_foto[0])
+    # Coletar todas as fotos enviadas nos últimos 60 segundos
+    agora = datetime.now().timestamp()
+    fotos_recentes = [
+        str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
+        if (agora - f.stat().st_mtime) < 60 and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
+    ]
 
-    ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, foto_path)
+    ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
     resumo = ia_result.get("resumo", "")
     perguntas = ia_result.get("perguntas", [])
 
