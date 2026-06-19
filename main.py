@@ -214,6 +214,28 @@ def init_db():
         except Exception:
             pass
 
+    # Recria streaks se a constraint for UNIQUE(data) em vez de UNIQUE(usuario, data)
+    indexes = [row[1] for row in c.execute("PRAGMA index_list(streaks)").fetchall()]
+    unique_cols = set()
+    for idx in indexes:
+        info = c.execute(f"PRAGMA index_info({idx})").fetchall()
+        if len(info) == 1:
+            unique_cols.add(info[0][2])
+    if "data" in unique_cols and "usuario" not in unique_cols:
+        c.execute("ALTER TABLE streaks RENAME TO streaks_old")
+        c.execute("""
+            CREATE TABLE streaks (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario   TEXT    NOT NULL DEFAULT 'tiago',
+                data      TEXT    NOT NULL,
+                registros INTEGER DEFAULT 0,
+                UNIQUE(usuario, data)
+            )
+        """)
+        c.execute("INSERT INTO streaks (usuario, data, registros) SELECT usuario, data, registros FROM streaks_old")
+        c.execute("DROP TABLE streaks_old")
+        conn.commit()
+
     conn.close()
 
 # ─── Lifespan ─────────────────────────────────────────────────────────────────
@@ -481,10 +503,11 @@ async def criar_aula(aula: AulaCreate):
                   p["correta"], p.get("explicacao", "")))
 
         hoje = date.today().isoformat()
-        try:
-            c.execute("INSERT INTO streaks (usuario, data, registros) VALUES (?, ?, 1)", (usuario, hoje))
-        except Exception:
+        existe_streak = c.execute("SELECT id FROM streaks WHERE usuario=? AND data=?", (usuario, hoje)).fetchone()
+        if existe_streak:
             c.execute("UPDATE streaks SET registros = registros + 1 WHERE usuario=? AND data=?", (usuario, hoje))
+        else:
+            c.execute("INSERT INTO streaks (usuario, data, registros) VALUES (?, ?, 1)", (usuario, hoje))
 
         conn.commit()
         conn.close()
