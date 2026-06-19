@@ -66,13 +66,24 @@ AGENDA_LEMBRETES = {
     "sun": (18, 0),
 }
 
-MSGS_LEMBRETE = [
-    ("⚽ Hora do treino, Tiago!", "O campo está pronto. Vamos registrar a aula de hoje!"),
-    ("🏆 Bora estudar!", "Renato Gaúcho sempre escalou quem treinou mais. Sua vez!"),
-    ("🔵⚫⚪ Tiago, é hora!", "Grêmio nunca desistiu. Você também não vai!"),
-    ("🇧🇷 Convocação do dia!", "A Seleção te espera. Primeiro: estudar!"),
-    ("🔴 You'll Never Study Alone!", "Anfield vibra com quem não para. Bora!"),
-]
+USUARIOS = ["tiago", "henrique"]
+
+MSGS_LEMBRETE = {
+    "tiago": [
+        ("⚽ Hora do treino, Tiago!", "O campo está pronto. Vamos registrar a aula de hoje!"),
+        ("🏆 Bora estudar, Tiago!", "Renato Gaúcho sempre escalou quem treinou mais. Sua vez!"),
+        ("🔵⚫⚪ Tiago, é hora!", "Grêmio nunca desistiu. Você também não vai!"),
+        ("🇧🇷 Convocação do dia!", "A Seleção te espera. Primeiro: estudar!"),
+        ("🔴 You'll Never Study Alone!", "Anfield vibra com quem não para. Bora!"),
+    ],
+    "henrique": [
+        ("⚽ Hora do treino, Henrique!", "O campo está pronto. Vamos registrar a aula de hoje!"),
+        ("🏆 Bora estudar, Henrique!", "Os craques treinam todo dia. Sua vez!"),
+        ("🔵⚫⚪ Henrique, é hora!", "Grêmio nunca desistiu. Você também não vai!"),
+        ("🇧🇷 Convocação do dia!", "A Seleção te espera. Primeiro: estudar!"),
+        ("🔴 You'll Never Study Alone!", "Anfield vibra com quem não para. Bora!"),
+    ],
+}
 
 MATERIAS = [
     "Arte", "Biologia", "Filosofia", "Física", "Geografia",
@@ -97,6 +108,7 @@ def init_db():
     c.executescript("""
     CREATE TABLE IF NOT EXISTS aulas (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario     TEXT    NOT NULL DEFAULT 'tiago',
         data        TEXT    NOT NULL,
         materia     TEXT    NOT NULL,
         trimestre   TEXT    NOT NULL,
@@ -104,25 +116,27 @@ def init_db():
         pagina_ini  INTEGER,
         pagina_fim  INTEGER,
         conteudo    TEXT    NOT NULL,
-        fonte       TEXT    DEFAULT 'manual',  -- 'manual' ou 'bernoulli'
+        fonte       TEXT    DEFAULT 'manual',
         resumo      TEXT,
         criado_em   TEXT    DEFAULT (datetime('now','localtime'))
     );
 
     CREATE TABLE IF NOT EXISTS quiz_perguntas (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario     TEXT    NOT NULL DEFAULT 'tiago',
         aula_id     INTEGER REFERENCES aulas(id),
         materia     TEXT,
         trimestre   TEXT,
         pergunta    TEXT    NOT NULL,
-        alternativas TEXT   NOT NULL,  -- JSON array
-        correta     INTEGER NOT NULL,  -- índice 0-3
+        alternativas TEXT   NOT NULL,
+        correta     INTEGER NOT NULL,
         explicacao  TEXT,
         nivel       TEXT    DEFAULT 'medio'
     );
 
     CREATE TABLE IF NOT EXISTS quiz_resultados (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario     TEXT    NOT NULL DEFAULT 'tiago',
         pergunta_id INTEGER REFERENCES quiz_perguntas(id),
         resposta    INTEGER NOT NULL,
         correta     INTEGER NOT NULL,
@@ -131,12 +145,15 @@ def init_db():
 
     CREATE TABLE IF NOT EXISTS streaks (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        data        TEXT    UNIQUE NOT NULL,
-        registros   INTEGER DEFAULT 0
+        usuario     TEXT    NOT NULL DEFAULT 'tiago',
+        data        TEXT    NOT NULL,
+        registros   INTEGER DEFAULT 0,
+        UNIQUE(usuario, data)
     );
 
     CREATE TABLE IF NOT EXISTS guias_prova (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario     TEXT    NOT NULL DEFAULT 'tiago',
         materia     TEXT    NOT NULL,
         trimestre   TEXT    NOT NULL,
         topicos     TEXT    NOT NULL,
@@ -148,6 +165,7 @@ def init_db():
 
     CREATE TABLE IF NOT EXISTS push_subscriptions (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario     TEXT    NOT NULL DEFAULT 'tiago',
         endpoint    TEXT    UNIQUE NOT NULL,
         p256dh      TEXT    NOT NULL,
         auth        TEXT    NOT NULL,
@@ -157,23 +175,35 @@ def init_db():
 
     CREATE TABLE IF NOT EXISTS bernoulli_cache (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario     TEXT    NOT NULL DEFAULT 'tiago',
         materia     TEXT    NOT NULL,
         capitulo    TEXT    NOT NULL,
         conteudo    TEXT,
         atualizado_em TEXT  DEFAULT (datetime('now','localtime')),
-        UNIQUE(materia, capitulo)
+        UNIQUE(usuario, materia, capitulo)
     );
     """)
 
     conn.commit()
 
-    # Migration: adicionar colunas de páginas se ainda não existem
-    for col, tipo in [("pagina_ini", "INTEGER"), ("pagina_fim", "INTEGER")]:
+    # Migrations
+    migrations = [
+        ("aulas", "pagina_ini", "INTEGER"),
+        ("aulas", "pagina_fim", "INTEGER"),
+        ("aulas", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+        ("quiz_perguntas", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+        ("quiz_resultados", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+        ("streaks", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+        ("guias_prova", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+        ("push_subscriptions", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+        ("bernoulli_cache", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+    ]
+    for table, col, tipo in migrations:
         try:
-            c.execute(f"ALTER TABLE aulas ADD COLUMN {col} {tipo}")
+            c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {tipo}")
             conn.commit()
         except Exception:
-            pass  # coluna já existe
+            pass
 
     conn.close()
 
@@ -181,9 +211,9 @@ def init_db():
 
 import random
 
-def enviar_push_todos(titulo: str, corpo: str):
+def enviar_push_usuario(usuario: str, titulo: str, corpo: str):
     conn = get_db()
-    subs = conn.execute("SELECT * FROM push_subscriptions").fetchall()
+    subs = conn.execute("SELECT * FROM push_subscriptions WHERE usuario=?", (usuario,)).fetchall()
     conn.close()
     for sub in subs:
         try:
@@ -199,9 +229,14 @@ def enviar_push_todos(titulo: str, corpo: str):
         except WebPushException:
             pass  # subscription expirada ou inválida
 
+def enviar_push_todos(titulo: str, corpo: str):
+    for u in USUARIOS:
+        enviar_push_usuario(u, titulo, corpo)
+
 def disparar_lembrete():
-    titulo, corpo = random.choice(MSGS_LEMBRETE)
-    enviar_push_todos(titulo, corpo)
+    for u in USUARIOS:
+        titulo, corpo = random.choice(MSGS_LEMBRETE[u])
+        enviar_push_usuario(u, titulo, corpo)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -236,6 +271,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 # ─── Modelos ─────────────────────────────────────────────────────────────────
 
 class AulaCreate(BaseModel):
+    usuario: str = "tiago"
     data: str
     materia: str
     trimestre: str
@@ -246,10 +282,12 @@ class AulaCreate(BaseModel):
     fonte: str = "manual"
 
 class QuizResposta(BaseModel):
+    usuario: str = "tiago"
     pergunta_id: int
     resposta: int
 
 class BernoulliContent(BaseModel):
+    usuario: str = "tiago"
     materia: str
     capitulo: str
     conteudo: str
@@ -362,36 +400,33 @@ async def listar_materias():
 
 @app.post("/api/aulas")
 async def criar_aula(aula: AulaCreate):
+    usuario = aula.usuario or "tiago"
     conn = get_db()
     c = conn.cursor()
 
-    # Gerar resumo e quiz via IA
     ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre)
     resumo = ia_result.get("resumo", "")
     perguntas = ia_result.get("perguntas", [])
 
-    # Salvar aula
     c.execute("""
-        INSERT INTO aulas (data, materia, trimestre, capitulo, pagina_ini, pagina_fim, conteudo, fonte, resumo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (aula.data, aula.materia, aula.trimestre, aula.capitulo, aula.pagina_ini, aula.pagina_fim, aula.conteudo, aula.fonte, resumo))
+        INSERT INTO aulas (usuario, data, materia, trimestre, capitulo, pagina_ini, pagina_fim, conteudo, fonte, resumo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (usuario, aula.data, aula.materia, aula.trimestre, aula.capitulo, aula.pagina_ini, aula.pagina_fim, aula.conteudo, aula.fonte, resumo))
     aula_id = c.lastrowid
 
-    # Salvar perguntas
     for p in perguntas:
         c.execute("""
-            INSERT INTO quiz_perguntas (aula_id, materia, trimestre, pergunta, alternativas, correta, explicacao)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (aula_id, aula.materia, aula.trimestre, p["pergunta"],
+            INSERT INTO quiz_perguntas (usuario, aula_id, materia, trimestre, pergunta, alternativas, correta, explicacao)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (usuario, aula_id, aula.materia, aula.trimestre, p["pergunta"],
               json.dumps(p["alternativas"], ensure_ascii=False),
               p["correta"], p.get("explicacao", "")))
 
-    # Registrar streak do dia
     hoje = date.today().isoformat()
     c.execute("""
-        INSERT INTO streaks (data, registros) VALUES (?, 1)
-        ON CONFLICT(data) DO UPDATE SET registros = registros + 1
-    """, (hoje,))
+        INSERT INTO streaks (usuario, data, registros) VALUES (?, ?, 1)
+        ON CONFLICT(usuario, data) DO UPDATE SET registros = registros + 1
+    """, (usuario, hoje))
 
     conn.commit()
     conn.close()
@@ -404,11 +439,11 @@ async def criar_aula(aula: AulaCreate):
     }
 
 @app.get("/api/aulas")
-async def listar_aulas(materia: Optional[str] = None, trimestre: Optional[str] = None):
+async def listar_aulas(usuario: str = "tiago", materia: Optional[str] = None, trimestre: Optional[str] = None):
     conn = get_db()
     c = conn.cursor()
-    query = "SELECT * FROM aulas WHERE 1=1"
-    params = []
+    query = "SELECT * FROM aulas WHERE usuario=?"
+    params = [usuario]
     if materia:
         query += " AND materia = ?"
         params.append(materia)
@@ -438,6 +473,7 @@ async def detalhe_aula(aula_id: int):
 
 @app.get("/api/quiz")
 async def obter_quiz(
+    usuario: str = "tiago",
     materia: Optional[str] = None,
     trimestre: Optional[str] = None,
     limite: int = 10,
@@ -445,40 +481,30 @@ async def obter_quiz(
     pagina_ini: Optional[int] = None,
     pagina_fim: Optional[int] = None,
 ):
-    """Retorna perguntas para o quiz. Filtros opcionais: data de corte e/ou intervalo de páginas."""
     conn = get_db()
     c = conn.cursor()
 
     usar_filtro_aula = ate_data or pagina_ini or pagina_fim
-
-    # Buscar IDs de aulas dentro dos filtros
-    aula_query = "SELECT id FROM aulas WHERE 1=1"
-    aula_params = []
+    aula_query = "SELECT id FROM aulas WHERE usuario=?"
+    aula_params = [usuario]
     if materia:
-        aula_query += " AND materia = ?"
-        aula_params.append(materia)
+        aula_query += " AND materia = ?"; aula_params.append(materia)
     if trimestre:
-        aula_query += " AND trimestre = ?"
-        aula_params.append(trimestre)
+        aula_query += " AND trimestre = ?"; aula_params.append(trimestre)
     if ate_data:
-        aula_query += " AND data <= ?"
-        aula_params.append(ate_data)
+        aula_query += " AND data <= ?"; aula_params.append(ate_data)
     if pagina_ini:
-        aula_query += " AND pagina_fim >= ?"
-        aula_params.append(pagina_ini)
+        aula_query += " AND pagina_fim >= ?"; aula_params.append(pagina_ini)
     if pagina_fim:
-        aula_query += " AND pagina_ini <= ?"
-        aula_params.append(pagina_fim)
+        aula_query += " AND pagina_ini <= ?"; aula_params.append(pagina_fim)
     aula_ids = [r[0] for r in c.execute(aula_query, aula_params).fetchall()] if usar_filtro_aula else None
 
-    query = "SELECT * FROM quiz_perguntas WHERE 1=1"
-    params = []
+    query = "SELECT * FROM quiz_perguntas WHERE usuario=?"
+    params = [usuario]
     if materia:
-        query += " AND materia = ?"
-        params.append(materia)
+        query += " AND materia = ?"; params.append(materia)
     if trimestre:
-        query += " AND trimestre = ?"
-        params.append(trimestre)
+        query += " AND trimestre = ?"; params.append(trimestre)
     if usar_filtro_aula:
         if aula_ids:
             placeholders = ",".join("?" * len(aula_ids))
@@ -501,20 +527,18 @@ async def obter_quiz(
     return {"perguntas": perguntas}
 
 @app.get("/api/quiz/revisao")
-async def quiz_revisao():
-    """Perguntas para revisão espaçada — erradas ou antigas"""
+async def quiz_revisao(usuario: str = "tiago"):
     conn = get_db()
     c = conn.cursor()
-    # Perguntas erradas nos últimos 7 dias ou nunca respondidas
     rows = c.execute("""
         SELECT qp.* FROM quiz_perguntas qp
         LEFT JOIN (
-            SELECT pergunta_id, MAX(respondido_em) as ultima, AVG(correta) as taxa
-            FROM quiz_resultados GROUP BY pergunta_id
+            SELECT pergunta_id, AVG(correta) as taxa
+            FROM quiz_resultados WHERE usuario=? GROUP BY pergunta_id
         ) r ON qp.id = r.pergunta_id
-        WHERE r.taxa IS NULL OR r.taxa < 0.6
+        WHERE qp.usuario=? AND (r.taxa IS NULL OR r.taxa < 0.6)
         ORDER BY RANDOM() LIMIT 5
-    """).fetchall()
+    """, (usuario, usuario)).fetchall()
     conn.close()
     perguntas = []
     for r in rows:
@@ -532,9 +556,9 @@ async def responder_quiz(resposta: QuizResposta):
         raise HTTPException(404, "Pergunta não encontrada")
     correta = 1 if resposta.resposta == pergunta["correta"] else 0
     c.execute("""
-        INSERT INTO quiz_resultados (pergunta_id, resposta, correta)
-        VALUES (?, ?, ?)
-    """, (resposta.pergunta_id, resposta.resposta, correta))
+        INSERT INTO quiz_resultados (usuario, pergunta_id, resposta, correta)
+        VALUES (?, ?, ?, ?)
+    """, (resposta.usuario, resposta.pergunta_id, resposta.resposta, correta))
     conn.commit()
     conn.close()
     return {
@@ -546,21 +570,20 @@ async def responder_quiz(resposta: QuizResposta):
 # --- Dashboard / Stats ---
 
 @app.get("/api/stats")
-async def estatisticas():
+async def estatisticas(usuario: str = "tiago"):
     conn = get_db()
     c = conn.cursor()
 
-    total_aulas = c.execute("SELECT COUNT(*) FROM aulas").fetchone()[0]
-    total_perguntas = c.execute("SELECT COUNT(*) FROM quiz_perguntas").fetchone()[0]
-    total_respostas = c.execute("SELECT COUNT(*) FROM quiz_resultados").fetchone()[0]
-    total_corretas = c.execute("SELECT SUM(correta) FROM quiz_resultados").fetchone()[0] or 0
+    total_aulas = c.execute("SELECT COUNT(*) FROM aulas WHERE usuario=?", (usuario,)).fetchone()[0]
+    total_perguntas = c.execute("SELECT COUNT(*) FROM quiz_perguntas WHERE usuario=?", (usuario,)).fetchone()[0]
+    total_respostas = c.execute("SELECT COUNT(*) FROM quiz_resultados WHERE usuario=?", (usuario,)).fetchone()[0]
+    total_corretas = c.execute("SELECT SUM(correta) FROM quiz_resultados WHERE usuario=?", (usuario,)).fetchone()[0] or 0
 
     # Streak atual
-    hoje = date.today().isoformat()
     streak_atual = 0
     dia_check = date.today()
     while True:
-        existe = c.execute("SELECT 1 FROM streaks WHERE data=?", (dia_check.isoformat(),)).fetchone()
+        existe = c.execute("SELECT 1 FROM streaks WHERE usuario=? AND data=?", (usuario, dia_check.isoformat())).fetchone()
         if existe:
             streak_atual += 1
             from datetime import timedelta
@@ -571,15 +594,15 @@ async def estatisticas():
     # Por matéria
     por_materia = c.execute("""
         SELECT materia, COUNT(*) as total_aulas,
-               (SELECT COUNT(*) FROM quiz_perguntas qp WHERE qp.materia=a.materia) as perguntas
-        FROM aulas a GROUP BY materia ORDER BY total_aulas DESC
-    """).fetchall()
+               (SELECT COUNT(*) FROM quiz_perguntas qp WHERE qp.materia=a.materia AND qp.usuario=a.usuario) as perguntas
+        FROM aulas a WHERE a.usuario=? GROUP BY materia ORDER BY total_aulas DESC
+    """, (usuario,)).fetchall()
 
     # Últimas aulas
     ultimas = c.execute("""
         SELECT id, data, materia, trimestre, capitulo, resumo, criado_em
-        FROM aulas ORDER BY criado_em DESC LIMIT 5
-    """).fetchall()
+        FROM aulas WHERE usuario=? ORDER BY criado_em DESC LIMIT 5
+    """, (usuario,)).fetchall()
 
     # Desempenho no quiz
     desempenho = c.execute("""
@@ -588,12 +611,13 @@ async def estatisticas():
                SUM(qr.correta) as corretas
         FROM quiz_resultados qr
         JOIN quiz_perguntas qp ON qr.pergunta_id = qp.id
+        WHERE qr.usuario=?
         GROUP BY qp.materia
-    """).fetchall()
+    """, (usuario,)).fetchall()
 
     # Dias estudados este mês
     mes_atual = date.today().strftime("%Y-%m")
-    dias_mes = c.execute("SELECT COUNT(*) FROM streaks WHERE data LIKE ?", (f"{mes_atual}%",)).fetchone()[0]
+    dias_mes = c.execute("SELECT COUNT(*) FROM streaks WHERE usuario=? AND data LIKE ?", (usuario, f"{mes_atual}%")).fetchone()[0]
 
     conn.close()
 
@@ -637,26 +661,25 @@ async def salvar_bernoulli(content: BernoulliContent):
     conn = get_db()
     c = conn.cursor()
 
-    # Verificar se é conteúdo novo (não existia antes)
     existente = c.execute(
-        "SELECT id FROM bernoulli_cache WHERE materia=? AND capitulo=?",
-        (content.materia, content.capitulo)
+        "SELECT id FROM bernoulli_cache WHERE usuario=? AND materia=? AND capitulo=?",
+        (content.usuario, content.materia, content.capitulo)
     ).fetchone()
     eh_novo = existente is None
 
     c.execute("""
-        INSERT INTO bernoulli_cache (materia, capitulo, conteudo)
-        VALUES (?, ?, ?)
-        ON CONFLICT(materia, capitulo) DO UPDATE SET
+        INSERT INTO bernoulli_cache (usuario, materia, capitulo, conteudo)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(usuario, materia, capitulo) DO UPDATE SET
             conteudo = excluded.conteudo,
             atualizado_em = datetime('now','localtime')
-    """, (content.materia, content.capitulo, content.conteudo))
+    """, (content.usuario, content.materia, content.capitulo, content.conteudo))
     conn.commit()
     conn.close()
 
-    # Notificar Tiago se for conteúdo novo
     if eh_novo:
-        enviar_push_todos(
+        enviar_push_usuario(
+            content.usuario,
             "📚 Novo material disponível!",
             f"Bernoulli adicionou conteúdo novo: {content.materia} — {content.capitulo}"
         )
@@ -664,19 +687,20 @@ async def salvar_bernoulli(content: BernoulliContent):
     return {"ok": True, "novo": eh_novo}
 
 @app.get("/api/bernoulli/conteudo")
-async def listar_bernoulli(materia: Optional[str] = None):
+async def listar_bernoulli(usuario: str = "tiago", materia: Optional[str] = None):
     conn = get_db()
     c = conn.cursor()
     if materia:
-        rows = c.execute("SELECT * FROM bernoulli_cache WHERE materia=? ORDER BY atualizado_em DESC", (materia,)).fetchall()
+        rows = c.execute("SELECT * FROM bernoulli_cache WHERE usuario=? AND materia=? ORDER BY atualizado_em DESC", (usuario, materia)).fetchall()
     else:
-        rows = c.execute("SELECT materia, capitulo, atualizado_em FROM bernoulli_cache ORDER BY materia, capitulo").fetchall()
+        rows = c.execute("SELECT materia, capitulo, atualizado_em FROM bernoulli_cache WHERE usuario=? ORDER BY materia, capitulo", (usuario,)).fetchall()
     conn.close()
     return {"conteudos": [dict(r) for r in rows]}
 
 # ─── Guia de Prova ───────────────────────────────────────────────────────────
 
 class GuiaProvaCreate(BaseModel):
+    usuario: str = "tiago"
     materia: str
     trimestre: str
     topicos: str
@@ -763,9 +787,9 @@ async def criar_guia_prova(dados: GuiaProvaCreate):
     conn = get_db()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO guias_prova (materia, trimestre, topicos, pagina_ini, pagina_fim, guia_html)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (dados.materia, dados.trimestre, dados.topicos,
+        INSERT INTO guias_prova (usuario, materia, trimestre, topicos, pagina_ini, pagina_fim, guia_html)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (dados.usuario, dados.materia, dados.trimestre, dados.topicos,
           dados.pagina_ini, dados.pagina_fim, guia_html))
     guia_id = c.lastrowid
     conn.commit()
@@ -773,11 +797,11 @@ async def criar_guia_prova(dados: GuiaProvaCreate):
     return {"id": guia_id, "guia_html": guia_html}
 
 @app.get("/api/guia-prova")
-async def listar_guias(materia: Optional[str] = None, trimestre: Optional[str] = None):
+async def listar_guias(usuario: str = "tiago", materia: Optional[str] = None, trimestre: Optional[str] = None):
     conn = get_db()
     c = conn.cursor()
-    query = "SELECT id, materia, trimestre, topicos, pagina_ini, pagina_fim, criado_em FROM guias_prova WHERE 1=1"
-    params = []
+    query = "SELECT id, materia, trimestre, topicos, pagina_ini, pagina_fim, criado_em FROM guias_prova WHERE usuario=?"
+    params = [usuario]
     if materia:
         query += " AND materia = ?"
         params.append(materia)
@@ -802,6 +826,7 @@ async def detalhe_guia(guia_id: int):
 # ─── Push Notifications ──────────────────────────────────────────────────────
 
 class PushSubscription(BaseModel):
+    usuario: str = "tiago"
     endpoint: str
     p256dh: str
     auth: str
@@ -810,9 +835,9 @@ class PushSubscription(BaseModel):
 async def subscribe_push(sub: PushSubscription):
     conn = get_db()
     conn.execute("""
-        INSERT OR REPLACE INTO push_subscriptions (endpoint, p256dh, auth)
-        VALUES (?, ?, ?)
-    """, (sub.endpoint, sub.p256dh, sub.auth))
+        INSERT OR REPLACE INTO push_subscriptions (usuario, endpoint, p256dh, auth)
+        VALUES (?, ?, ?, ?)
+    """, (sub.usuario, sub.endpoint, sub.p256dh, sub.auth))
     conn.commit()
     conn.close()
     return {"ok": True}

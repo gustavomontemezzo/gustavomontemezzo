@@ -2,6 +2,9 @@
 
 const API = '';  // mesma origem
 
+// Usuário ativo (selecionado na tela inicial)
+let USUARIO = localStorage.getItem('usuario') || null;
+
 // Estado global
 let state = {
   stats: null,
@@ -44,10 +47,38 @@ const LOADING_MSGS = [
 ];
 
 window.addEventListener('load', async () => {
+  if (!USUARIO) {
+    document.getElementById('loading-screen').classList.add('hidden');
+    document.getElementById('user-select-screen').classList.remove('hidden');
+    return;
+  }
+  iniciarApp();
+});
+
+function selecionarUsuario(nome) {
+  USUARIO = nome;
+  localStorage.setItem('usuario', nome);
+  document.getElementById('user-select-screen').classList.add('hidden');
+  iniciarApp();
+}
+
+function trocarUsuario() {
+  localStorage.removeItem('usuario');
+  USUARIO = null;
+  location.reload();
+}
+
+async function iniciarApp() {
   // Mensagem aleatória no loading
   const loadMsg = LOADING_MSGS[Math.floor(Math.random() * LOADING_MSGS.length)];
   const msgEl = document.getElementById('loading-msg');
   if (msgEl) msgEl.textContent = loadMsg;
+  document.getElementById('loading-screen').classList.remove('hidden');
+
+  // Nome do usuário no header
+  const nomeDisplay = USUARIO.charAt(0).toUpperCase() + USUARIO.slice(1);
+  const headerName = document.getElementById('header-name');
+  if (headerName) headerName.textContent = nomeDisplay;
 
   // Definir data de hoje nos inputs
   const hoje = new Date().toISOString().split('T')[0];
@@ -67,7 +98,7 @@ window.addEventListener('load', async () => {
 
   // Registrar Service Worker e ativar notificações
   registrarServiceWorker();
-});
+}
 
 // ─── Push Notifications ───────────────────────────────────────────────────────
 
@@ -102,6 +133,7 @@ async function registrarServiceWorker() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        usuario: USUARIO,
         endpoint: subJson.endpoint,
         p256dh: subJson.keys.p256dh,
         auth: subJson.keys.auth
@@ -122,7 +154,8 @@ function urlBase64ToUint8Array(base64String) {
 // ─── API Helpers ──────────────────────────────────────────────────────────────
 
 async function get(url) {
-  const res = await fetch(API + url);
+  const sep = url.includes('?') ? '&' : '?';
+  const res = await fetch(API + url + sep + 'usuario=' + USUARIO);
   return res.json();
 }
 
@@ -130,7 +163,7 @@ async function post(url, data) {
   const res = await fetch(API + url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
+    body: JSON.stringify({ usuario: USUARIO, ...data })
   });
   return res.json();
 }
@@ -193,10 +226,11 @@ async function carregarStats() {
   const hora = new Date().getHours();
   let saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
   const fraseHoje = FRASES_CLUBES[new Date().getDate() % FRASES_CLUBES.length];
+  const nomeExibir = USUARIO.charAt(0).toUpperCase() + USUARIO.slice(1);
   document.getElementById('banner-title').textContent =
     data.streak_atual > 0
-      ? `${saudacao}, Tiago! 🔥 ${data.streak_atual} dias seguidos!`
-      : `${saudacao}, Tiago! ${fraseHoje.frase}`;
+      ? `${saudacao}, ${nomeExibir}! 🔥 ${data.streak_atual} dias seguidos!`
+      : `${saudacao}, ${nomeExibir}! ${fraseHoje.frase}`;
   document.getElementById('banner-sub').textContent =
     data.total_aulas === 0
       ? `${fraseHoje.clube} — Registre sua primeira aula agora`

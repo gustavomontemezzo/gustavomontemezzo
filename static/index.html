@@ -11,6 +11,19 @@
 </head>
 <body>
 
+<!-- TELA DE SELEÇÃO DE USUÁRIO -->
+<div id="user-select-screen" class="loading-screen hidden">
+  <div class="loading-content">
+    <div class="gremio-ball">⚽</div>
+    <h1>Arena do<br>Conhecimento</h1>
+    <p>Quem vai jogar hoje?</p>
+    <div style="display:flex;gap:16px;margin-top:24px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-primary" style="font-size:1.2rem;padding:18px 32px;" onclick="selecionarUsuario('tiago')">🔵⚫⚪ Tiago</button>
+      <button class="btn-primary" style="font-size:1.2rem;padding:18px 32px;background:#e74c3c;" onclick="selecionarUsuario('henrique')">🔴 Henrique</button>
+    </div>
+  </div>
+</div>
+
 <!-- TELA DE LOADING -->
 <div id="loading-screen" class="loading-screen">
   <div class="loading-content">
@@ -30,7 +43,7 @@
     <div class="header-left">
       <div class="avatar">⚽</div>
       <div>
-        <div class="header-name">Tiago</div>
+        <div class="header-name" id="header-name" onclick="trocarUsuario()" style="cursor:pointer;" title="Trocar usuário">Tiago</div>
         <div class="header-sub" id="header-nivel">Jogador da Base</div>
       </div>
     </div>
