@@ -956,6 +956,17 @@ async def enviar_notificacao_manual(msg: PushMensagem):
     return {"ok": True}
 
 
+class PushMensagemUsuario(BaseModel):
+    titulo: str
+    corpo: str
+    usuario: str = "tiago"
+
+@app.post("/api/push/enviar-usuario")
+async def enviar_notificacao_usuario(msg: PushMensagemUsuario):
+    enviar_push_usuario(msg.usuario, msg.titulo, msg.corpo)
+    return {"ok": True}
+
+
 @app.get("/api/debug/colunas")
 async def debug_colunas():
     """Verifica colunas das tabelas no banco"""

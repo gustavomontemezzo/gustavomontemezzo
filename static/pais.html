@@ -3,369 +3,273 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📊 Painel dos Pais — Sistema Tiago</title>
+<title>📊 Painel dos Pais</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #f0f4f8; color: #1a1a2e; min-height: 100vh;
-}
-.header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #003DA5 100%);
-  color: white; padding: 20px 32px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.header h1 { font-size: 22px; font-weight: 800; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a1a2e; min-height: 100vh; }
+
+.header { background: linear-gradient(135deg, #1a1a2e 0%, #003DA5 100%); color: white; padding: 20px 24px; }
+.header h1 { font-size: 20px; font-weight: 800; }
 .header-sub { font-size: 13px; opacity: 0.7; margin-top: 2px; }
-.header-badge {
-  background: rgba(245,166,35,0.2); border: 1.5px solid #F5A623;
-  border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 700; color: #F5A623;
+
+.tabs { display: flex; gap: 0; background: #1a1a2e; padding: 0 24px; }
+.tab {
+  padding: 12px 28px; font-size: 15px; font-weight: 700; cursor: pointer;
+  color: rgba(255,255,255,0.5); border-bottom: 3px solid transparent;
+  transition: all 0.15s;
 }
+.tab.ativo { color: white; border-bottom-color: #F5A623; }
+
 .container { max-width: 1100px; margin: 0 auto; padding: 24px 24px 48px; }
 
-/* Grid */
-.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
-.stat-card {
-  background: white; border-radius: 14px; padding: 20px 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07); border-top: 4px solid;
-}
-.stat-card.blue   { border-color: #003DA5; }
-.stat-card.green  { border-color: #27AE60; }
-.stat-card.gold   { border-color: #F5A623; }
-.stat-card.red    { border-color: #E74C3C; }
-.stat-icon { font-size: 28px; margin-bottom: 8px; }
-.stat-num  { font-size: 36px; font-weight: 900; }
-.stat-label { font-size: 12px; color: #6C757D; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: white; border-radius: 14px; padding: 20px 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); border-top: 4px solid; }
+.stat-card.blue  { border-color: #003DA5; }
+.stat-card.green { border-color: #27AE60; }
+.stat-card.gold  { border-color: #F5A623; }
+.stat-card.red   { border-color: #E74C3C; }
+.stat-icon  { font-size: 26px; margin-bottom: 8px; }
+.stat-num   { font-size: 34px; font-weight: 900; }
+.stat-label { font-size: 11px; color: #6C757D; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
 
-/* Row */
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
 .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
-.card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.full-row { margin-bottom: 20px; }
 
-/* Matérias */
-.materia-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
-}
+.materia-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #f0f0f0; }
 .materia-row:last-child { border-bottom: none; }
-.materia-nome { min-width: 130px; font-size: 14px; font-weight: 600; }
-.progress-bar { flex: 1; height: 8px; background: #E9ECEF; border-radius: 99px; }
+.materia-nome { min-width: 130px; font-size: 13px; font-weight: 600; }
+.progress-bar { flex: 1; height: 7px; background: #E9ECEF; border-radius: 99px; }
 .progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #003DA5, #0052CC); }
-.materia-count { min-width: 60px; text-align: right; font-size: 13px; color: #6C757D; }
+.materia-count { min-width: 60px; text-align: right; font-size: 12px; color: #6C757D; }
 
-/* Aulas */
-.aula-item {
-  padding: 12px 0; border-bottom: 1px solid #f0f0f0;
-}
+.aula-item { padding: 11px 0; border-bottom: 1px solid #f0f0f0; }
 .aula-item:last-child { border-bottom: none; }
-.aula-item-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.aula-item-header { display: flex; justify-content: space-between; margin-bottom: 3px; }
 .aula-mat { font-size: 13px; font-weight: 700; color: #003DA5; }
 .aula-data { font-size: 12px; color: #6C757D; }
-.aula-cap { font-size: 12px; color: #6C757D; margin-bottom: 4px; }
-.aula-resumo { font-size: 13px; color: #333; line-height: 1.5; }
-.tag {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  border-radius: 99px; padding: 2px 8px; margin-top: 4px;
-}
+.aula-cap { font-size: 12px; color: #6C757D; margin-bottom: 3px; }
+.aula-resumo { font-size: 13px; color: #333; line-height: 1.4; }
+.tag { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 99px; padding: 2px 8px; margin-top: 4px; }
 .tag-trim { background: #E9ECEF; color: #6C757D; }
-.tag-fonte { background: rgba(0,61,165,0.1); color: #003DA5; }
 
-/* Quiz desempenho */
-.quiz-mat-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
-}
+.quiz-mat-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #f0f0f0; }
 .quiz-mat-row:last-child { border-bottom: none; }
-.qm-nome { flex: 1; font-size: 14px; font-weight: 600; }
-.qm-resps { font-size: 13px; color: #6C757D; min-width: 80px; }
-.taxa-badge {
-  min-width: 60px; text-align: center; padding: 3px 10px;
-  border-radius: 99px; font-size: 13px; font-weight: 700;
-}
+.qm-nome { flex: 1; font-size: 13px; font-weight: 600; }
+.qm-resps { font-size: 12px; color: #6C757D; min-width: 70px; }
+.taxa-badge { min-width: 55px; text-align: center; padding: 3px 8px; border-radius: 99px; font-size: 12px; font-weight: 700; }
 .taxa-alto  { background: rgba(39,174,96,0.1);  color: #27AE60; }
 .taxa-medio { background: rgba(245,166,35,0.1); color: #F5A623; }
 .taxa-baixo { background: rgba(231,76,60,0.1);  color: #E74C3C; }
 
-/* Calendário streak */
-.streak-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  gap: 4px; margin-top: 8px;
-}
-.streak-day {
-  aspect-ratio: 1; border-radius: 4px; background: #E9ECEF;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; color: #6C757D; font-weight: 600;
-}
+.streak-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 8px; }
+.streak-day { aspect-ratio: 1; border-radius: 4px; background: #E9ECEF; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6C757D; font-weight: 600; }
 .streak-day.estudou { background: #003DA5; color: white; }
 .streak-day.hoje { outline: 2px solid #F5A623; }
 
-.full-row { margin-bottom: 20px; }
-
-/* Alertas */
-.alerta {
-  background: rgba(231,76,60,0.08); border: 1.5px solid rgba(231,76,60,0.25);
-  border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
-  display: flex; align-items: flex-start; gap: 10px;
-}
-.alerta-icon { font-size: 20px; flex-shrink: 0; }
-.alerta-texto { font-size: 14px; line-height: 1.5; }
+.alerta { background: rgba(231,76,60,0.08); border: 1.5px solid rgba(231,76,60,0.25); border-radius: 12px; padding: 13px 16px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 10px; }
+.alerta-ok { background: rgba(39,174,96,0.08); border-color: rgba(39,174,96,0.25); }
+.alerta-icon { font-size: 18px; flex-shrink: 0; }
+.alerta-texto { font-size: 13px; line-height: 1.5; }
 .alerta-titulo { font-weight: 700; margin-bottom: 2px; }
 
-.alerta-ok {
-  background: rgba(39,174,96,0.08); border-color: rgba(39,174,96,0.25);
-}
-
-.notif-btn {
-  background: #f0f4f8; border: 1.5px solid #ddd; border-radius: 10px;
-  padding: 10px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
-  text-align: left; transition: background 0.15s;
-}
+.notif-btn { background: #f0f4f8; border: 1.5px solid #ddd; border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; transition: background 0.15s; }
 .notif-btn:hover { background: #e2e8f0; border-color: #003DA5; }
+
+.spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #E9ECEF; border-top-color: #003DA5; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 40px auto; display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 768px) {
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .row { grid-template-columns: 1fr; }
-  div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+  .tab { padding: 12px 18px; font-size: 14px; }
 }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <h1>📊 Painel de Supervisão</h1>
-    <div class="header-sub">Acompanhamento de Tiago — Colégio Vicentino São José</div>
-  </div>
-  <div id="status-badge" class="header-badge">Carregando...</div>
+  <h1>📊 Painel de Supervisão</h1>
+  <div class="header-sub">Colégio Vicentino São José — Foz do Iguaçu</div>
 </div>
 
-<div class="container">
+<div class="tabs">
+  <div class="tab ativo" onclick="trocarAba('tiago')">🔵 Tiago</div>
+  <div class="tab" onclick="trocarAba('henrique')">🔴 Henrique</div>
+</div>
 
-  <!-- Stats gerais -->
-  <div class="stats-grid">
-    <div class="stat-card blue">
-      <div class="stat-icon">📖</div>
-      <div class="stat-num" id="p-aulas">—</div>
-      <div class="stat-label">Aulas Registradas</div>
-    </div>
-    <div class="stat-card green">
-      <div class="stat-icon">✅</div>
-      <div class="stat-num" id="p-taxa">—</div>
-      <div class="stat-label">Taxa de Acerto</div>
-    </div>
-    <div class="stat-card gold">
-      <div class="stat-icon">🔥</div>
-      <div class="stat-num" id="p-streak">—</div>
-      <div class="stat-label">Dias Seguidos</div>
-    </div>
-    <div class="stat-card red">
-      <div class="stat-icon">❓</div>
-      <div class="stat-num" id="p-quiz">—</div>
-      <div class="stat-label">Quiz Respondidos</div>
-    </div>
-  </div>
-
-  <!-- Alertas -->
-  <div id="alertas-container" class="full-row"></div>
-
-  <!-- Row: Matérias + Desempenho quiz -->
-  <div class="row">
-    <div class="card">
-      <div class="card-title">📚 Matérias Estudadas</div>
-      <div id="p-materias">—</div>
-    </div>
-    <div class="card">
-      <div class="card-title">⚡ Desempenho no Quiz por Matéria</div>
-      <div id="p-quiz-detalhe">—</div>
-    </div>
-  </div>
-
-  <!-- Notificação manual -->
-  <div class="full-row">
-    <div class="card">
-      <div class="card-title">📲 Enviar Notificação para o Tiago</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-        <button class="notif-btn" onclick="enviarNotif('📚 Novo material!', 'Professor adicionou material novo. Confira no sistema!')">📚 Novo material do professor</button>
-        <button class="notif-btn" onclick="enviarNotif('📝 Novo trabalho!', 'Foi passado um trabalho novo. Registre no sistema para organizar!')">📝 Trabalho passado</button>
-        <button class="notif-btn" onclick="enviarNotif('✏️ Exercícios novos!', 'Há exercícios novos para fazer. Bora praticar!')">✏️ Exercícios novos</button>
-        <button class="notif-btn" onclick="enviarNotif('⚠️ Prova se aproximando!', 'Não esqueça de usar a aba Véspera de Jogo para se preparar!')">⚠️ Lembrete de prova</button>
-      </div>
-      <div style="display:flex;gap:8px">
-        <input id="notif-titulo" type="text" placeholder="Título da mensagem" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
-        <input id="notif-corpo" type="text" placeholder="Texto da mensagem" style="flex:2;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
-        <button onclick="enviarNotifCustom()" style="background:#003DA5;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer">Enviar ▶</button>
-      </div>
-      <div id="notif-feedback" style="margin-top:8px;font-size:13px;color:#27AE60;display:none">✅ Notificação enviada!</div>
-    </div>
-  </div>
-
-  <!-- Row: Últimas aulas + Streak -->
-  <div class="row">
-    <div class="card">
-      <div class="card-title">🕐 Últimas Aulas Registradas</div>
-      <div id="p-ultimas">—</div>
-    </div>
-    <div class="card">
-      <div class="card-title">📅 Dias Estudados Este Mês</div>
-      <div id="p-dias-count" style="font-size:28px;font-weight:800;margin-bottom:12px">—</div>
-      <div id="p-calendario"></div>
-    </div>
-  </div>
-
+<div class="container" id="conteudo">
+  <div style="text-align:center;padding:60px 0"><div class="spinner"></div></div>
 </div>
 
 <script>
-async function carregarPainel() {
-  const res = await fetch('/api/stats');
-  const data = await res.json();
+let abaAtiva = 'tiago';
 
-  // Status badge
-  const streak = data.streak_atual;
-  const badge = document.getElementById('status-badge');
-  if (streak === 0) {
-    badge.textContent = '⚠️ Sem treino hoje';
-    badge.style.borderColor = '#E74C3C';
-    badge.style.color = '#E74C3C';
-    badge.style.background = 'rgba(231,76,60,0.1)';
-  } else {
-    badge.textContent = `🔥 ${streak} dias seguidos`;
-  }
+function trocarAba(usuario) {
+  abaAtiva = usuario;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('ativo', (i === 0 && usuario === 'tiago') || (i === 1 && usuario === 'henrique'));
+  });
+  carregarPainel(usuario);
+}
 
-  // Cards
-  document.getElementById('p-aulas').textContent   = data.total_aulas;
-  document.getElementById('p-taxa').textContent    = `${data.taxa_acerto}%`;
-  document.getElementById('p-streak').textContent  = data.streak_atual;
-  document.getElementById('p-quiz').textContent    = data.total_respostas;
-  document.getElementById('p-dias-count').textContent = `${data.dias_estudados_mes} dias`;
+async function carregarPainel(usuario) {
+  document.getElementById('conteudo').innerHTML = '<div style="text-align:center;padding:60px 0"><div class="spinner"></div></div>';
+
+  const [stats, aulasRes] = await Promise.all([
+    fetch(`/api/stats?usuario=${usuario}`).then(r => r.json()),
+    fetch(`/api/aulas?usuario=${usuario}`).then(r => r.json())
+  ]);
+
+  const nome = usuario === 'tiago' ? 'Tiago' : 'Henrique';
+  const serie = usuario === 'tiago' ? '1º ano EM' : '6º ano EF';
+  const hoje = new Date().toISOString().split('T')[0];
+  const aulas = aulasRes.aulas || [];
 
   // Alertas
-  const alertasEl = document.getElementById('alertas-container');
-  const hoje = new Date().toISOString().split('T')[0];
-  const temAulaHoje = data.ultimas_aulas.some(a => a.data === hoje || a.criado_em?.startsWith(hoje));
+  const streak = stats.streak_atual;
+  const temHoje = aulas.some(a => (a.data || '').startsWith(hoje));
   const alertas = [];
-
-  if (data.total_aulas === 0) {
-    alertas.push({ ok: false, icon: '🚨', titulo: 'Sistema ainda não foi usado', texto: 'Nenhuma aula foi registrada até agora. Incentive o Tiago a registrar a primeira aula de hoje!' });
-  } else if (!temAulaHoje && streak === 0) {
-    alertas.push({ ok: false, icon: '⚠️', titulo: 'Nenhum registro hoje', texto: 'Tiago ainda não registrou aulas hoje. O streak foi interrompido.' });
-  } else if (temAulaHoje) {
-    alertas.push({ ok: true, icon: '✅', titulo: 'Tiago estudou hoje!', texto: `Registros feitos hoje. Streak atual: ${streak} dias consecutivos.` });
+  if (stats.total_aulas === 0) {
+    alertas.push({ ok: false, icon: '🚨', titulo: 'Sistema ainda não foi usado', texto: `${nome} ainda não registrou nenhuma aula.` });
+  } else if (!temHoje && streak === 0) {
+    alertas.push({ ok: false, icon: '⚠️', titulo: 'Nenhum registro hoje', texto: `${nome} não registrou aulas hoje. O streak foi interrompido.` });
+  } else if (temHoje) {
+    alertas.push({ ok: true, icon: '✅', titulo: `${nome} estudou hoje!`, texto: `Streak atual: ${streak} dia${streak !== 1 ? 's' : ''} consecutivo${streak !== 1 ? 's' : ''}.` });
+  }
+  if (stats.taxa_acerto > 0 && stats.taxa_acerto < 50) {
+    alertas.push({ ok: false, icon: '📉', titulo: 'Taxa de acerto baixa', texto: `Taxa atual de ${stats.taxa_acerto}%. Vale revisar as matérias com mais erros.` });
   }
 
-  if (data.taxa_acerto > 0 && data.taxa_acerto < 50) {
-    alertas.push({ ok: false, icon: '📉', titulo: 'Taxa de acerto baixa no quiz', texto: `Taxa atual de ${data.taxa_acerto}%. Pode ser útil revisar o conteúdo juntos nas matérias com mais erros.` });
-  }
-
-  alertasEl.innerHTML = alertas.map(a => `
-    <div class="alerta ${a.ok ? 'alerta-ok' : ''}">
-      <div class="alerta-icon">${a.icon}</div>
-      <div class="alerta-texto">
-        <div class="alerta-titulo">${a.titulo}</div>
-        ${a.texto}
-      </div>
-    </div>
-  `).join('');
+  // Calendário
+  const agora = new Date();
+  const diasNoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate();
+  const diasEstudados = new Set(aulas.map(a => (a.data || '').substring(0, 10)));
+  const calendario = Array.from({length: diasNoMes}, (_, i) => {
+    const d = i + 1;
+    const ds = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    return `<div class="streak-day ${diasEstudados.has(ds) ? 'estudou' : ''} ${ds === hoje ? 'hoje' : ''}" title="${d}/${agora.getMonth()+1}">${d}</div>`;
+  }).join('');
 
   // Matérias
-  const maxAulas = Math.max(...data.por_materia.map(m => m.total_aulas), 1);
-  document.getElementById('p-materias').innerHTML = data.por_materia.length === 0
+  const maxAulas = Math.max(...(stats.por_materia || []).map(m => m.total_aulas), 1);
+  const materiasHTML = (stats.por_materia || []).length === 0
     ? '<div style="color:#999;font-size:13px">Nenhuma aula registrada.</div>'
-    : data.por_materia.map(m => `
-      <div class="materia-row">
-        <div class="materia-nome">${m.materia}</div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width:${Math.round(m.total_aulas/maxAulas*100)}%"></div>
-        </div>
-        <div class="materia-count">${m.total_aulas} aula${m.total_aulas !== 1 ? 's' : ''}</div>
-      </div>
-    `).join('');
+    : stats.por_materia.map(m => `
+        <div class="materia-row">
+          <div class="materia-nome">${m.materia}</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${Math.round(m.total_aulas/maxAulas*100)}%"></div></div>
+          <div class="materia-count">${m.total_aulas} aula${m.total_aulas !== 1 ? 's' : ''}</div>
+        </div>`).join('');
 
   // Quiz por matéria
-  document.getElementById('p-quiz-detalhe').innerHTML = data.desempenho_quiz.length === 0
+  const quizHTML = (stats.desempenho_quiz || []).length === 0
     ? '<div style="color:#999;font-size:13px">Nenhum quiz respondido ainda.</div>'
-    : data.desempenho_quiz.map(d => {
+    : stats.desempenho_quiz.map(d => {
         const taxa = d.respostas > 0 ? Math.round(d.corretas / d.respostas * 100) : 0;
-        const classe = taxa >= 70 ? 'taxa-alto' : taxa >= 50 ? 'taxa-medio' : 'taxa-baixo';
-        return `
-          <div class="quiz-mat-row">
-            <div class="qm-nome">${d.materia}</div>
-            <div class="qm-resps">${d.respostas} resp.</div>
-            <div class="taxa-badge ${classe}">${taxa}%</div>
-          </div>
-        `;
+        const cl = taxa >= 70 ? 'taxa-alto' : taxa >= 50 ? 'taxa-medio' : 'taxa-baixo';
+        return `<div class="quiz-mat-row"><div class="qm-nome">${d.materia}</div><div class="qm-resps">${d.respostas} resp.</div><div class="taxa-badge ${cl}">${taxa}%</div></div>`;
       }).join('');
 
   // Últimas aulas
-  document.getElementById('p-ultimas').innerHTML = data.ultimas_aulas.length === 0
+  const ultimasHTML = aulas.length === 0
     ? '<div style="color:#999;font-size:13px">Nenhuma aula registrada.</div>'
-    : data.ultimas_aulas.map(a => `
+    : aulas.slice(0, 8).map(a => `
         <div class="aula-item">
           <div class="aula-item-header">
             <div class="aula-mat">${a.materia}</div>
             <div class="aula-data">${formatarData(a.data)}</div>
           </div>
           ${a.capitulo ? `<div class="aula-cap">📖 ${a.capitulo}</div>` : ''}
-          <div class="aula-resumo">${(a.resumo || '').substring(0,150)}${(a.resumo || '').length > 150 ? '...' : ''}</div>
+          <div class="aula-resumo">${(a.resumo || '').substring(0,150)}${(a.resumo||'').length > 150 ? '...' : ''}</div>
           <span class="tag tag-trim">${a.trimestre}</span>
-        </div>
-      `).join('');
+        </div>`).join('');
 
-  // Calendário do mês
-  const agora = new Date();
-  const diasNoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate();
-  const diasEstudados = new Set();
+  // Botões de notificação rápida
+  const notifBtns = [
+    ['📚 Novo material!', 'Professor adicionou material novo. Confira no sistema!', '📚 Novo material'],
+    ['📝 Trabalho passado', `Foi passado um trabalho novo, ${nome}. Registre no sistema!`, '📝 Trabalho novo'],
+    ['✏️ Exercícios novos!', 'Há exercícios novos para fazer. Bora praticar!', '✏️ Exercícios'],
+    ['⚠️ Prova chegando!', 'Não esqueça de usar a Véspera de Jogo para se preparar!', '⚠️ Prova'],
+  ].map(([titulo, corpo, label]) =>
+    `<button class="notif-btn" onclick="enviarNotif('${titulo}','${corpo}','${usuario}')">${label}</button>`
+  ).join('');
 
-  // Buscar dados de streaks
-  try {
-    const aulasRes = await fetch('/api/aulas');
-    const aulasData = await aulasRes.json();
-    aulasData.aulas.forEach(a => diasEstudados.add(a.data?.substring(0, 10)));
-  } catch(e) {}
-
-  const hoje2 = agora.toISOString().split('T')[0];
-  document.getElementById('p-calendario').innerHTML = `
-    <div class="streak-grid">
-      ${Array.from({length: diasNoMes}, (_, i) => {
-        const d = i + 1;
-        const dateStr = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const estudou = diasEstudados.has(dateStr);
-        const ehHoje = dateStr === hoje2;
-        return `<div class="streak-day ${estudou ? 'estudou' : ''} ${ehHoje ? 'hoje' : ''}" title="${d}/${agora.getMonth()+1}">${d}</div>`;
-      }).join('')}
+  document.getElementById('conteudo').innerHTML = `
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="stat-icon">📖</div><div class="stat-num">${stats.total_aulas}</div><div class="stat-label">Aulas Registradas</div></div>
+      <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-num">${stats.taxa_acerto}%</div><div class="stat-label">Taxa de Acerto</div></div>
+      <div class="stat-card gold"><div class="stat-icon">🔥</div><div class="stat-num">${stats.streak_atual}</div><div class="stat-label">Dias Seguidos</div></div>
+      <div class="stat-card red"><div class="stat-icon">❓</div><div class="stat-num">${stats.total_respostas}</div><div class="stat-label">Quiz Respondidos</div></div>
     </div>
-    <div style="margin-top:12px;font-size:12px;color:#6C757D;display:flex;gap:16px">
-      <span>🟦 Estudou</span>
-      <span>⬜ Sem registro</span>
-      <span style="outline:2px solid #F5A623;display:inline-block;width:14px;height:14px;border-radius:3px"></span> Hoje
+
+    <!-- Alertas -->
+    <div class="full-row">
+      ${alertas.map(a => `
+        <div class="alerta ${a.ok ? 'alerta-ok' : ''}">
+          <div class="alerta-icon">${a.icon}</div>
+          <div class="alerta-texto"><div class="alerta-titulo">${a.titulo}</div>${a.texto}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Matérias + Quiz -->
+    <div class="row">
+      <div class="card"><div class="card-title">📚 Matérias Estudadas</div>${materiasHTML}</div>
+      <div class="card"><div class="card-title">⚡ Desempenho no Quiz</div>${quizHTML}</div>
+    </div>
+
+    <!-- Notificações -->
+    <div class="full-row">
+      <div class="card">
+        <div class="card-title">📲 Enviar Notificação para ${nome}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">${notifBtns}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="notif-titulo" type="text" placeholder="Título" style="flex:1;min-width:120px;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
+          <input id="notif-corpo" type="text" placeholder="Texto da mensagem" style="flex:2;min-width:160px;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
+          <button onclick="enviarNotifCustom('${usuario}')" style="background:#003DA5;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer">Enviar ▶</button>
+        </div>
+        <div id="notif-feedback" style="margin-top:8px;font-size:13px;color:#27AE60;display:none">✅ Notificação enviada!</div>
+      </div>
+    </div>
+
+    <!-- Últimas aulas + Calendário -->
+    <div class="row">
+      <div class="card"><div class="card-title">🕐 Últimas Aulas</div>${ultimasHTML}</div>
+      <div class="card">
+        <div class="card-title">📅 Dias Estudados Este Mês</div>
+        <div style="font-size:26px;font-weight:800;margin-bottom:10px">${stats.dias_estudados_mes} dias</div>
+        <div class="streak-grid">${calendario}</div>
+        <div style="margin-top:10px;font-size:11px;color:#6C757D;display:flex;gap:14px">
+          <span>🟦 Estudou</span><span>⬜ Sem registro</span>
+        </div>
+      </div>
     </div>
   `;
 
-  // Auto-refresh a cada 5 minutos
-  setTimeout(carregarPainel, 300000);
+  setTimeout(() => carregarPainel(abaAtiva), 300000);
 }
 
 function formatarData(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
-carregarPainel();
-
-async function enviarNotif(titulo, corpo) {
-  await fetch('/api/push/enviar', {
+async function enviarNotif(titulo, corpo, usuario) {
+  await fetch('/api/push/enviar-usuario', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ titulo, corpo })
+    body: JSON.stringify({ titulo, corpo, usuario })
   });
   mostrarFeedback();
 }
 
-async function enviarNotifCustom() {
+async function enviarNotifCustom(usuario) {
   const titulo = document.getElementById('notif-titulo').value.trim();
   const corpo  = document.getElementById('notif-corpo').value.trim();
   if (!titulo || !corpo) return alert('Preencha título e texto.');
-  await enviarNotif(titulo, corpo);
+  await enviarNotif(titulo, corpo, usuario);
   document.getElementById('notif-titulo').value = '';
   document.getElementById('notif-corpo').value  = '';
 }
@@ -375,6 +279,8 @@ function mostrarFeedback() {
   el.style.display = 'block';
   setTimeout(() => el.style.display = 'none', 3000);
 }
+
+carregarPainel('tiago');
 </script>
 </body>
 </html>
