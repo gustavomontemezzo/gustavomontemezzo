@@ -916,15 +916,6 @@ async def debug_colunas():
     conn.close()
     return tabelas
 
-@app.post("/api/admin/zerar-quiz-resultados")
-async def zerar_quiz_resultados():
-    conn = get_db()
-    conn.execute("DELETE FROM quiz_resultados")
-    conn.commit()
-    total = conn.execute("SELECT changes()").fetchone()[0]
-    conn.close()
-    return {"ok": True, "registros_removidos": total}
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
