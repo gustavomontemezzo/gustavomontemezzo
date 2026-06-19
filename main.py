@@ -182,15 +182,6 @@ def init_db():
         criado_em   TEXT    DEFAULT (datetime('now','localtime'))
     );
 
-    CREATE TABLE IF NOT EXISTS bernoulli_cache (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario     TEXT    NOT NULL DEFAULT 'tiago',
-        materia     TEXT    NOT NULL,
-        capitulo    TEXT    NOT NULL,
-        conteudo    TEXT,
-        atualizado_em TEXT  DEFAULT (datetime('now','localtime')),
-        UNIQUE(usuario, materia, capitulo)
-    );
     """)
 
     conn.commit()
@@ -205,7 +196,6 @@ def init_db():
         ("streaks", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
         ("guias_prova", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
         ("push_subscriptions", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
-        ("bernoulli_cache", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
     ]
     for table, col, tipo in migrations:
         try:
@@ -317,12 +307,6 @@ class QuizResposta(BaseModel):
     pergunta_id: int
     resposta: int
 
-class BernoulliContent(BaseModel):
-    usuario: str = "tiago"
-    materia: str
-    capitulo: str
-    conteudo: str
-
 # ─── IA: Gerar Resumo + Quiz ──────────────────────────────────────────────────
 
 PERFIS_USUARIOS = {
@@ -368,8 +352,6 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
     prompt = f"""Você é um professor criativo e exigente.
 Seu aluno é {perfil['nome']}, {perfil['idade']} anos, {perfil['serie']}, {perfil['escola']}.
 {perfil['interesses']}
-Material didático: Bernoulli.
-
 MATÉRIA: {materia}
 CAPÍTULO/TÓPICO: {capitulo}
 TRIMESTRE: {trimestre}
@@ -741,49 +723,6 @@ async def servir_upload(filename: str):
         raise HTTPException(404)
     return FileResponse(path)
 
-# --- Bernoulli (conteúdo capturado pelo agente) ---
-
-@app.post("/api/bernoulli/conteudo")
-async def salvar_bernoulli(content: BernoulliContent):
-    conn = get_db()
-    c = conn.cursor()
-
-    existente = c.execute(
-        "SELECT id FROM bernoulli_cache WHERE usuario=? AND materia=? AND capitulo=?",
-        (content.usuario, content.materia, content.capitulo)
-    ).fetchone()
-    eh_novo = existente is None
-
-    c.execute("""
-        INSERT INTO bernoulli_cache (usuario, materia, capitulo, conteudo)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(usuario, materia, capitulo) DO UPDATE SET
-            conteudo = excluded.conteudo,
-            atualizado_em = datetime('now','localtime')
-    """, (content.usuario, content.materia, content.capitulo, content.conteudo))
-    conn.commit()
-    conn.close()
-
-    if eh_novo:
-        enviar_push_usuario(
-            content.usuario,
-            "📚 Novo material disponível!",
-            f"Bernoulli adicionou conteúdo novo: {content.materia} — {content.capitulo}"
-        )
-
-    return {"ok": True, "novo": eh_novo}
-
-@app.get("/api/bernoulli/conteudo")
-async def listar_bernoulli(usuario: str = "tiago", materia: Optional[str] = None):
-    conn = get_db()
-    c = conn.cursor()
-    if materia:
-        rows = c.execute("SELECT * FROM bernoulli_cache WHERE usuario=? AND materia=? ORDER BY atualizado_em DESC", (usuario, materia)).fetchall()
-    else:
-        rows = c.execute("SELECT materia, capitulo, atualizado_em FROM bernoulli_cache WHERE usuario=? ORDER BY materia, capitulo", (usuario,)).fetchall()
-    conn.close()
-    return {"conteudos": [dict(r) for r in rows]}
-
 # ─── Guia de Prova ───────────────────────────────────────────────────────────
 
 class GuiaProvaCreate(BaseModel):
@@ -807,8 +746,6 @@ def gerar_guia_prova(materia: str, trimestre: str, topicos: str,
 
     prompt = f"""Você é um professor especialista em criar materiais de revisão para provas do Ensino Médio.
 Seu aluno é Tiago, 15 anos, 1º ano do Ensino Médio, Colégio Vicentino São José, Foz do Iguaçu - PR.
-Material didático: Bernoulli.
-
 MATÉRIA: {materia}
 TRIMESTRE: {trimestre}
 TÓPICOS A ESTUDAR: {topicos}
