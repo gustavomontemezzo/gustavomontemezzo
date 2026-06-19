@@ -312,13 +312,10 @@ async function registrarAula(event) {
 
   try {
     // Enviar todas as fotos ANTES da aula para o Claude poder usá-las
-    const fotoInput = document.getElementById('input-foto');
-    if (fotoInput.files.length > 0) {
-      for (const file of Array.from(fotoInput.files)) {
-        const formData = new FormData();
-        formData.append('file', file);
-        await fetch('/api/upload', { method: 'POST', body: formData });
-      }
+    for (const file of fotosAcumuladas) {
+      const formData = new FormData();
+      formData.append('file', file);
+      await fetch('/api/upload', { method: 'POST', body: formData });
     }
 
     const result = await post('/api/aulas', data);
@@ -332,7 +329,7 @@ async function registrarAula(event) {
     // Limpar form
     document.getElementById('form-aula').reset();
     document.getElementById('input-data').value = new Date().toISOString().split('T')[0];
-    document.getElementById('foto-preview').innerHTML = '';
+    limparFotos();
 
     // Recarregar stats
     await carregarStats();
@@ -348,18 +345,27 @@ async function registrarAula(event) {
 
 // ─── Upload Preview ───────────────────────────────────────────────────────────
 
-function previewFoto(input) {
+// Armazena todas as fotos acumuladas
+let fotosAcumuladas = [];
+
+function adicionarFotos(input) {
   const preview = document.getElementById('foto-preview');
-  preview.innerHTML = '';
   if (input.files && input.files.length > 0) {
-    Array.from(input.files).forEach((file, i) => {
+    Array.from(input.files).forEach(file => {
+      fotosAcumuladas.push(file);
       const reader = new FileReader();
+      const idx = fotosAcumuladas.length;
       reader.onload = e => {
-        preview.innerHTML += `<img src="${e.target.result}" class="foto-preview-img" alt="Foto ${i+1}" style="margin:4px;max-width:120px;border-radius:8px;">`;
+        preview.innerHTML += `<img src="${e.target.result}" alt="Foto ${idx}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
       };
       reader.readAsDataURL(file);
     });
   }
+}
+
+function limparFotos() {
+  fotosAcumuladas = [];
+  document.getElementById('foto-preview').innerHTML = '';
 }
 
 // ─── Bernoulli auto-fill ──────────────────────────────────────────────────────

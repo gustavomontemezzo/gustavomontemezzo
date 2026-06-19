@@ -182,10 +182,17 @@ Ex: Hoje estudamos fotossíntese. O prof explicou que as plantas usam luz solar 
         <!-- Upload de foto -->
         <div class="form-group">
           <label>📷 Foto do caderno ou apostila (opcional)</label>
-          <div class="upload-area" id="upload-area" onclick="document.getElementById('input-foto').click()">
-            <div class="upload-icon">📸</div>
-            <div class="upload-text">Toque para adicionar fotos (pode selecionar várias)</div>
-            <input type="file" id="input-foto" accept="image/*" multiple style="display:none" onchange="previewFoto(this)">
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('input-foto-camera').click()">
+              <div class="upload-icon">📷</div>
+              <div class="upload-text" style="font-size:0.8rem;">Tirar foto</div>
+              <input type="file" id="input-foto-camera" accept="image/*" capture="environment" style="display:none" onchange="adicionarFotos(this)">
+            </div>
+            <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('input-foto-galeria').click()">
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-text" style="font-size:0.8rem;">Galeria (várias)</div>
+              <input type="file" id="input-foto-galeria" accept="image/*" multiple style="display:none" onchange="adicionarFotos(this)">
+            </div>
           </div>
           <div id="foto-preview"></div>
         </div>
