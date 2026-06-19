@@ -36,7 +36,7 @@ from anthropic import Anthropic
 BASE_DIR   = Path(__file__).parent
 ENV_FILE   = BASE_DIR / ".env"
 LOG_FILE   = BASE_DIR / "data" / "agente.log"
-API_LOCAL  = "http://localhost:8000"
+API_LOCAL  = "https://web-production-51cf4.up.railway.app"
 
 # Carregar .env
 if ENV_FILE.exists():
@@ -195,10 +195,13 @@ def mostrar_guia_permissoes(permissoes: dict):
 
 # ─── Postar conteúdo na API ───────────────────────────────────────────────────
 
+USUARIO_ATIVO = "tiago"  # será sobrescrito pelo argumento --usuario
+
 def postar_conteudo(materia: str, capitulo: str, conteudo: str) -> bool:
     """Envia conteúdo extraído para o sistema de estudos."""
     try:
         r = requests.post(f"{API_LOCAL}/api/bernoulli/conteudo", json={
+            "usuario": USUARIO_ATIVO,
             "materia": materia,
             "capitulo": capitulo,
             "conteudo": conteudo
@@ -463,16 +466,21 @@ def extrair_tarefas(agente: AgenteComputerUse) -> list:
 # ─── Função principal ─────────────────────────────────────────────────────────
 
 def main():
+    global USUARIO_ATIVO
     parser = argparse.ArgumentParser(description="Agente Automático Bernoulli")
+    parser.add_argument("--usuario", default="tiago", help="Usuário: tiago ou henrique")
     parser.add_argument("--materia", help="Extrair apenas uma matéria específica")
     parser.add_argument("--feed-only", action="store_true", help="Extrair apenas o Feed")
     parser.add_argument("--tarefas", action="store_true", help="Verificar tarefas pendentes")
     parser.add_argument("--checar", action="store_true", help="Apenas verificar permissões")
     args = parser.parse_args()
 
+    USUARIO_ATIVO = args.usuario
+    nome = USUARIO_ATIVO.capitalize()
+
     print("\n" + "⚽"*30)
     print("  AGENTE AUTOMÁTICO BERNOULLI")
-    print("  Sistema de Estudos — Tiago")
+    print(f"  Sistema de Estudos — {nome}")
     print("⚽"*30 + "\n")
 
     # ─── Verificar permissões ─────────────────────────────────────────────────
@@ -511,7 +519,7 @@ def main():
         sys.exit(1)
 
     if not verificar_sistema_online():
-        log("❌ Sistema de estudos não está rodando. Execute: bash ~/sistema-tiago/iniciar.sh", "ERROR")
+        log("❌ Sistema de estudos offline. Verifique o Railway.", "ERROR")
         sys.exit(1)
 
     # ─── Abrir Bernoulli ──────────────────────────────────────────────────────
