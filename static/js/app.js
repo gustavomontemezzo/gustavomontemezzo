@@ -311,16 +311,16 @@ async function registrarAula(event) {
   };
 
   try {
-    const result = await post('/api/aulas', data);
-    state.ultimaAulaId = result.id;
-
-    // Fazer upload de foto se houver
+    // Enviar foto ANTES da aula para o Claude poder usá-la
     const fotoInput = document.getElementById('input-foto');
     if (fotoInput.files[0]) {
       const formData = new FormData();
       formData.append('file', fotoInput.files[0]);
       await fetch('/api/upload', { method: 'POST', body: formData });
     }
+
+    const result = await post('/api/aulas', data);
+    state.ultimaAulaId = result.id;
 
     // Mostrar modal de sucesso
     document.getElementById('modal-resumo').innerHTML = formatarTexto(result.resumo);

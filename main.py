@@ -303,7 +303,21 @@ class BernoulliContent(BaseModel):
 
 # ─── IA: Gerar Resumo + Quiz ──────────────────────────────────────────────────
 
-def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: str) -> dict:
+PERFIS_USUARIOS = {
+    "tiago": {
+        "nome": "Tiago", "idade": 15, "serie": "1º ano do Ensino Médio",
+        "escola": "Colégio Vicentino São José, Foz do Iguaçu - PR",
+        "interesses": "Tiago torce para Grêmio, Seleção Brasileira e Liverpool."
+    },
+    "henrique": {
+        "nome": "Henrique", "idade": 11, "serie": "6º ano do Ensino Fundamental",
+        "escola": "Colégio Vicentino São José, Foz do Iguaçu - PR",
+        "interesses": ""
+    },
+}
+
+def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: str,
+                         usuario: str = "tiago", foto_path: str = None) -> dict:
     if not ANTHROPIC_API_KEY:
         return {
             "resumo": f"📚 Resumo de {materia} - {capitulo}: {conteudo[:200]}...",
@@ -311,10 +325,25 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
         }
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    perfil = PERFIS_USUARIOS.get(usuario, PERFIS_USUARIOS["tiago"])
+
+    conteudo_msg = []
+
+    # Adicionar foto se existir
+    if foto_path and Path(foto_path).exists():
+        import base64
+        with open(foto_path, "rb") as f:
+            img_data = base64.standard_b64encode(f.read()).decode("utf-8")
+        ext = Path(foto_path).suffix.lower()
+        media_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"
+        conteudo_msg.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": media_type, "data": img_data}
+        })
 
     prompt = f"""Você é um professor criativo e exigente.
-Seu aluno é Tiago, 15 anos, 1º ano do Ensino Médio, Colégio Vicentino São José, Foz do Iguaçu - PR.
-Tiago torce para Grêmio, Seleção Brasileira e Liverpool.
+Seu aluno é {perfil['nome']}, {perfil['idade']} anos, {perfil['serie']}, {perfil['escola']}.
+{perfil['interesses']}
 Material didático: Bernoulli.
 
 MATÉRIA: {materia}
@@ -324,6 +353,7 @@ CONTEÚDO ESTUDADO:
 ---
 {conteudo[:3000]}
 ---
+{f"(Há também uma foto do caderno/apostila acima — use o conteúdo da imagem para enriquecer o resumo e o quiz.)" if foto_path else ""}
 
 TAREFA:
 1. Crie um RESUMO CRIATIVO (máx. 200 palavras) do conteúdo.
@@ -354,11 +384,13 @@ FORMATO DE RESPOSTA (JSON puro, sem markdown):
   ]
 }}"""
 
+    conteudo_msg.append({"type": "text", "text": prompt})
+
     try:
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=8000,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": conteudo_msg}]
         )
         raw = message.content[0].text.strip()
         # Limpar possível markdown
@@ -414,7 +446,13 @@ async def criar_aula(aula: AulaCreate):
     conn = get_db()
     c = conn.cursor()
 
-    ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre)
+    # Verificar se há foto recém enviada para usar na geração
+    foto_path = None
+    ultima_foto = sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
+    if ultima_foto and (datetime.now().timestamp() - ultima_foto[0].stat().st_mtime) < 30:
+        foto_path = str(ultima_foto[0])
+
+    ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, foto_path)
     resumo = ia_result.get("resumo", "")
     perguntas = ia_result.get("perguntas", [])
 
