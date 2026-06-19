@@ -926,22 +926,17 @@ async def enviar_notificacao_manual(msg: PushMensagem):
     return {"ok": True}
 
 
-@app.post("/api/debug/aula")
-async def debug_aula(aula: AulaCreate):
-    """Endpoint temporário para diagnosticar erro no criar_aula"""
-    import traceback
-    usuario = aula.usuario or "tiago"
-    try:
-        agora = datetime.now().timestamp()
-        fotos_recentes = [
-            str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
-            if f.is_file() and (agora - f.stat().st_mtime) < 60
-            and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
-        ]
-        ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
-        return {"ok": True, "fotos": fotos_recentes, "resumo_gerado": bool(ia_result.get("resumo")), "perguntas": len(ia_result.get("perguntas", []))}
-    except Exception as e:
-        return {"erro": str(e), "traceback": traceback.format_exc()}
+@app.get("/api/debug/colunas")
+async def debug_colunas():
+    """Verifica colunas das tabelas no banco"""
+    conn = get_db()
+    c = conn.cursor()
+    tabelas = {}
+    for tabela in ["aulas", "quiz_perguntas", "quiz_resultados", "streaks"]:
+        rows = c.execute(f"PRAGMA table_info({tabela})").fetchall()
+        tabelas[tabela] = [r["name"] for r in rows]
+    conn.close()
+    return tabelas
 
 if __name__ == "__main__":
     import uvicorn
