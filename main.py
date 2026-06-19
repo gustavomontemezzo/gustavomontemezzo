@@ -926,6 +926,23 @@ async def enviar_notificacao_manual(msg: PushMensagem):
     return {"ok": True}
 
 
+@app.post("/api/debug/aula")
+async def debug_aula(aula: AulaCreate):
+    """Endpoint temporário para diagnosticar erro no criar_aula"""
+    import traceback
+    usuario = aula.usuario or "tiago"
+    try:
+        agora = datetime.now().timestamp()
+        fotos_recentes = [
+            str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
+            if f.is_file() and (agora - f.stat().st_mtime) < 60
+            and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
+        ]
+        ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
+        return {"ok": True, "fotos": fotos_recentes, "resumo_gerado": bool(ia_result.get("resumo")), "perguntas": len(ia_result.get("perguntas", []))}
+    except Exception as e:
+        return {"erro": str(e), "traceback": traceback.format_exc()}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
