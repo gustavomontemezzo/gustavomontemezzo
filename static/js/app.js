@@ -498,9 +498,11 @@ async function responder(indice) {
   });
 
   // Enviar resposta para API
-  const result = await post('/api/quiz/responder', {
-    pergunta_id: p.id, resposta: indice
-  });
+  let result = { correta: indice === p.correta, explicacao: p.explicacao || '' };
+  try {
+    const res = await post('/api/quiz/responder', { pergunta_id: p.id, resposta: indice });
+    if (res && typeof res.correta !== 'undefined') result = res;
+  } catch(e) { /* usa resultado local calculado acima */ }
 
   const acertou = result.correta;
   if (acertou) {
@@ -514,7 +516,7 @@ async function responder(indice) {
     });
   }
 
-  // Feedback
+  // Feedback — sempre aparece independente da API
   const feedbackEl = document.getElementById('feedback-card');
   const feedbackIcon = document.getElementById('feedback-icon');
   const feedbackTitulo = document.getElementById('feedback-titulo');
@@ -525,13 +527,14 @@ async function responder(indice) {
     ? 'Gol! Resposta correta! ⚽'
     : 'Fora! Resposta incorreta';
   feedbackTitulo.className = 'feedback-titulo ' + (acertou ? 'certa' : 'errada');
-  feedbackExp.textContent = result.explicacao || '';
+  feedbackExp.textContent = result.explicacao || p.explicacao || '';
 
   // Botão próxima
   const isUltima = q.atual >= q.perguntas.length - 1;
   feedbackEl.querySelector('button').textContent = isUltima ? '🏁 Ver Resultado' : 'Próxima ▶';
 
   feedbackEl.classList.remove('hidden');
+  feedbackEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
   // Atualizar scores no header
   document.getElementById('score-certas').textContent = q.certas;
