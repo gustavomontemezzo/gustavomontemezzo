@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 Painel dos Pais — Sistema Tiago</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f0f4f8; color: #1a1a2e; min-height: 100vh;
+}
+.header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #003DA5 100%);
+  color: white; padding: 20px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header h1 { font-size: 22px; font-weight: 800; }
+.header-sub { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+.header-badge {
+  background: rgba(245,166,35,0.2); border: 1.5px solid #F5A623;
+  border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 700; color: #F5A623;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 24px 48px; }
+
+/* Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 28px; }
+.stat-card {
+  background: white; border-radius: 14px; padding: 20px 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07); border-top: 4px solid;
+}
+.stat-card.blue   { border-color: #003DA5; }
+.stat-card.green  { border-color: #27AE60; }
+.stat-card.gold   { border-color: #F5A623; }
+.stat-card.red    { border-color: #E74C3C; }
+.stat-icon { font-size: 28px; margin-bottom: 8px; }
+.stat-num  { font-size: 36px; font-weight: 900; }
+.stat-label { font-size: 12px; color: #6C757D; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+
+/* Row */
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+.card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+/* Matérias */
+.materia-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+}
+.materia-row:last-child { border-bottom: none; }
+.materia-nome { min-width: 130px; font-size: 14px; font-weight: 600; }
+.progress-bar { flex: 1; height: 8px; background: #E9ECEF; border-radius: 99px; }
+.progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #003DA5, #0052CC); }
+.materia-count { min-width: 60px; text-align: right; font-size: 13px; color: #6C757D; }
+
+/* Aulas */
+.aula-item {
+  padding: 12px 0; border-bottom: 1px solid #f0f0f0;
+}
+.aula-item:last-child { border-bottom: none; }
+.aula-item-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.aula-mat { font-size: 13px; font-weight: 700; color: #003DA5; }
+.aula-data { font-size: 12px; color: #6C757D; }
+.aula-cap { font-size: 12px; color: #6C757D; margin-bottom: 4px; }
+.aula-resumo { font-size: 13px; color: #333; line-height: 1.5; }
+.tag {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  border-radius: 99px; padding: 2px 8px; margin-top: 4px;
+}
+.tag-trim { background: #E9ECEF; color: #6C757D; }
+.tag-fonte { background: rgba(0,61,165,0.1); color: #003DA5; }
+
+/* Quiz desempenho */
+.quiz-mat-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+}
+.quiz-mat-row:last-child { border-bottom: none; }
+.qm-nome { flex: 1; font-size: 14px; font-weight: 600; }
+.qm-resps { font-size: 13px; color: #6C757D; min-width: 80px; }
+.taxa-badge {
+  min-width: 60px; text-align: center; padding: 3px 10px;
+  border-radius: 99px; font-size: 13px; font-weight: 700;
+}
+.taxa-alto  { background: rgba(39,174,96,0.1);  color: #27AE60; }
+.taxa-medio { background: rgba(245,166,35,0.1); color: #F5A623; }
+.taxa-baixo { background: rgba(231,76,60,0.1);  color: #E74C3C; }
+
+/* Calendário streak */
+.streak-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 4px; margin-top: 8px;
+}
+.streak-day {
+  aspect-ratio: 1; border-radius: 4px; background: #E9ECEF;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #6C757D; font-weight: 600;
+}
+.streak-day.estudou { background: #003DA5; color: white; }
+.streak-day.hoje { outline: 2px solid #F5A623; }
+
+.full-row { margin-bottom: 20px; }
+
+/* Alertas */
+.alerta {
+  background: rgba(231,76,60,0.08); border: 1.5px solid rgba(231,76,60,0.25);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.alerta-icon { font-size: 20px; flex-shrink: 0; }
+.alerta-texto { font-size: 14px; line-height: 1.5; }
+.alerta-titulo { font-weight: 700; margin-bottom: 2px; }
+
+.alerta-ok {
+  background: rgba(39,174,96,0.08); border-color: rgba(39,174,96,0.25);
+}
+
+.notif-btn {
+  background: #f0f4f8; border: 1.5px solid #ddd; border-radius: 10px;
+  padding: 10px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+  text-align: left; transition: background 0.15s;
+}
+.notif-btn:hover { background: #e2e8f0; border-color: #003DA5; }
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .row { grid-template-columns: 1fr; }
+  div[style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📊 Painel de Supervisão</h1>
+    <div class="header-sub">Acompanhamento de Tiago — Colégio Vicentino São José</div>
+  </div>
+  <div id="status-badge" class="header-badge">Carregando...</div>
+</div>
+
+<div class="container">
+
+  <!-- Stats gerais -->
+  <div class="stats-grid">
+    <div class="stat-card blue">
+      <div class="stat-icon">📖</div>
+      <div class="stat-num" id="p-aulas">—</div>
+      <div class="stat-label">Aulas Registradas</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-icon">✅</div>
+      <div class="stat-num" id="p-taxa">—</div>
+      <div class="stat-label">Taxa de Acerto</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-num" id="p-streak">—</div>
+      <div class="stat-label">Dias Seguidos</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-icon">❓</div>
+      <div class="stat-num" id="p-quiz">—</div>
+      <div class="stat-label">Quiz Respondidos</div>
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  <div id="alertas-container" class="full-row"></div>
+
+  <!-- Row: Matérias + Desempenho quiz -->
+  <div class="row">
+    <div class="card">
+      <div class="card-title">📚 Matérias Estudadas</div>
+      <div id="p-materias">—</div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Desempenho no Quiz por Matéria</div>
+      <div id="p-quiz-detalhe">—</div>
+    </div>
+  </div>
+
+  <!-- Notificação manual -->
+  <div class="full-row">
+    <div class="card">
+      <div class="card-title">📲 Enviar Notificação para o Tiago</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <button class="notif-btn" onclick="enviarNotif('📚 Novo material!', 'Professor adicionou material novo. Confira no sistema!')">📚 Novo material do professor</button>
+        <button class="notif-btn" onclick="enviarNotif('📝 Novo trabalho!', 'Foi passado um trabalho novo. Registre no sistema para organizar!')">📝 Trabalho passado</button>
+        <button class="notif-btn" onclick="enviarNotif('✏️ Exercícios novos!', 'Há exercícios novos para fazer. Bora praticar!')">✏️ Exercícios novos</button>
+        <button class="notif-btn" onclick="enviarNotif('⚠️ Prova se aproximando!', 'Não esqueça de usar a aba Véspera de Jogo para se preparar!')">⚠️ Lembrete de prova</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="notif-titulo" type="text" placeholder="Título da mensagem" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
+        <input id="notif-corpo" type="text" placeholder="Texto da mensagem" style="flex:2;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
+        <button onclick="enviarNotifCustom()" style="background:#003DA5;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer">Enviar ▶</button>
+      </div>
+      <div id="notif-feedback" style="margin-top:8px;font-size:13px;color:#27AE60;display:none">✅ Notificação enviada!</div>
+    </div>
+  </div>
+
+  <!-- Row: Últimas aulas + Streak -->
+  <div class="row">
+    <div class="card">
+      <div class="card-title">🕐 Últimas Aulas Registradas</div>
+      <div id="p-ultimas">—</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📅 Dias Estudados Este Mês</div>
+      <div id="p-dias-count" style="font-size:28px;font-weight:800;margin-bottom:12px">—</div>
+      <div id="p-calendario"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function carregarPainel() {
+  const res = await fetch('/api/stats');
+  const data = await res.json();
+
+  // Status badge
+  const streak = data.streak_atual;
+  const badge = document.getElementById('status-badge');
+  if (streak === 0) {
+    badge.textContent = '⚠️ Sem treino hoje';
+    badge.style.borderColor = '#E74C3C';
+    badge.style.color = '#E74C3C';
+    badge.style.background = 'rgba(231,76,60,0.1)';
+  } else {
+    badge.textContent = `🔥 ${streak} dias seguidos`;
+  }
+
+  // Cards
+  document.getElementById('p-aulas').textContent   = data.total_aulas;
+  document.getElementById('p-taxa').textContent    = `${data.taxa_acerto}%`;
+  document.getElementById('p-streak').textContent  = data.streak_atual;
+  document.getElementById('p-quiz').textContent    = data.total_respostas;
+  document.getElementById('p-dias-count').textContent = `${data.dias_estudados_mes} dias`;
+
+  // Alertas
+  const alertasEl = document.getElementById('alertas-container');
+  const hoje = new Date().toISOString().split('T')[0];
+  const temAulaHoje = data.ultimas_aulas.some(a => a.data === hoje || a.criado_em?.startsWith(hoje));
+  const alertas = [];
+
+  if (data.total_aulas === 0) {
+    alertas.push({ ok: false, icon: '🚨', titulo: 'Sistema ainda não foi usado', texto: 'Nenhuma aula foi registrada até agora. Incentive o Tiago a registrar a primeira aula de hoje!' });
+  } else if (!temAulaHoje && streak === 0) {
+    alertas.push({ ok: false, icon: '⚠️', titulo: 'Nenhum registro hoje', texto: 'Tiago ainda não registrou aulas hoje. O streak foi interrompido.' });
+  } else if (temAulaHoje) {
+    alertas.push({ ok: true, icon: '✅', titulo: 'Tiago estudou hoje!', texto: `Registros feitos hoje. Streak atual: ${streak} dias consecutivos.` });
+  }
+
+  if (data.taxa_acerto > 0 && data.taxa_acerto < 50) {
+    alertas.push({ ok: false, icon: '📉', titulo: 'Taxa de acerto baixa no quiz', texto: `Taxa atual de ${data.taxa_acerto}%. Pode ser útil revisar o conteúdo juntos nas matérias com mais erros.` });
+  }
+
+  alertasEl.innerHTML = alertas.map(a => `
+    <div class="alerta ${a.ok ? 'alerta-ok' : ''}">
+      <div class="alerta-icon">${a.icon}</div>
+      <div class="alerta-texto">
+        <div class="alerta-titulo">${a.titulo}</div>
+        ${a.texto}
+      </div>
+    </div>
+  `).join('');
+
+  // Matérias
+  const maxAulas = Math.max(...data.por_materia.map(m => m.total_aulas), 1);
+  document.getElementById('p-materias').innerHTML = data.por_materia.length === 0
+    ? '<div style="color:#999;font-size:13px">Nenhuma aula registrada.</div>'
+    : data.por_materia.map(m => `
+      <div class="materia-row">
+        <div class="materia-nome">${m.materia}</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${Math.round(m.total_aulas/maxAulas*100)}%"></div>
+        </div>
+        <div class="materia-count">${m.total_aulas} aula${m.total_aulas !== 1 ? 's' : ''}</div>
+      </div>
+    `).join('');
+
+  // Quiz por matéria
+  document.getElementById('p-quiz-detalhe').innerHTML = data.desempenho_quiz.length === 0
+    ? '<div style="color:#999;font-size:13px">Nenhum quiz respondido ainda.</div>'
+    : data.desempenho_quiz.map(d => {
+        const taxa = d.respostas > 0 ? Math.round(d.corretas / d.respostas * 100) : 0;
+        const classe = taxa >= 70 ? 'taxa-alto' : taxa >= 50 ? 'taxa-medio' : 'taxa-baixo';
+        return `
+          <div class="quiz-mat-row">
+            <div class="qm-nome">${d.materia}</div>
+            <div class="qm-resps">${d.respostas} resp.</div>
+            <div class="taxa-badge ${classe}">${taxa}%</div>
+          </div>
+        `;
+      }).join('');
+
+  // Últimas aulas
+  document.getElementById('p-ultimas').innerHTML = data.ultimas_aulas.length === 0
+    ? '<div style="color:#999;font-size:13px">Nenhuma aula registrada.</div>'
+    : data.ultimas_aulas.map(a => `
+        <div class="aula-item">
+          <div class="aula-item-header">
+            <div class="aula-mat">${a.materia}</div>
+            <div class="aula-data">${formatarData(a.data)}</div>
+          </div>
+          ${a.capitulo ? `<div class="aula-cap">📖 ${a.capitulo}</div>` : ''}
+          <div class="aula-resumo">${(a.resumo || '').substring(0,150)}${(a.resumo || '').length > 150 ? '...' : ''}</div>
+          <span class="tag tag-trim">${a.trimestre}</span>
+        </div>
+      `).join('');
+
+  // Calendário do mês
+  const agora = new Date();
+  const diasNoMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate();
+  const diasEstudados = new Set();
+
+  // Buscar dados de streaks
+  try {
+    const aulasRes = await fetch('/api/aulas');
+    const aulasData = await aulasRes.json();
+    aulasData.aulas.forEach(a => diasEstudados.add(a.data?.substring(0, 10)));
+  } catch(e) {}
+
+  const hoje2 = agora.toISOString().split('T')[0];
+  document.getElementById('p-calendario').innerHTML = `
+    <div class="streak-grid">
+      ${Array.from({length: diasNoMes}, (_, i) => {
+        const d = i + 1;
+        const dateStr = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const estudou = diasEstudados.has(dateStr);
+        const ehHoje = dateStr === hoje2;
+        return `<div class="streak-day ${estudou ? 'estudou' : ''} ${ehHoje ? 'hoje' : ''}" title="${d}/${agora.getMonth()+1}">${d}</div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:#6C757D;display:flex;gap:16px">
+      <span>🟦 Estudou</span>
+      <span>⬜ Sem registro</span>
+      <span style="outline:2px solid #F5A623;display:inline-block;width:14px;height:14px;border-radius:3px"></span> Hoje
+    </div>
+  `;
+
+  // Auto-refresh a cada 5 minutos
+  setTimeout(carregarPainel, 300000);
+}
+
+function formatarData(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+carregarPainel();
+
+async function enviarNotif(titulo, corpo) {
+  await fetch('/api/push/enviar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ titulo, corpo })
+  });
+  mostrarFeedback();
+}
+
+async function enviarNotifCustom() {
+  const titulo = document.getElementById('notif-titulo').value.trim();
+  const corpo  = document.getElementById('notif-corpo').value.trim();
+  if (!titulo || !corpo) return alert('Preencha título e texto.');
+  await enviarNotif(titulo, corpo);
+  document.getElementById('notif-titulo').value = '';
+  document.getElementById('notif-corpo').value  = '';
+}
+
+function mostrarFeedback() {
+  const el = document.getElementById('notif-feedback');
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+</script>
+</body>
+</html>

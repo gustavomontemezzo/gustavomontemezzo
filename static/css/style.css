@@ -1,0 +1,463 @@
+/* ===== SISTEMA DE ESTUDOS - TIAGO ===== */
+/* Tema: Grêmio (azul #003DA5, preto #000000, branco #FFFFFF) */
+
+:root {
+  /* Grêmio */
+  --azul:    #003DA5;
+  --azul2:   #0052CC;
+  --preto:   #1a1a2e;
+  /* Seleção Brasileira */
+  --verde:   #009C3B;
+  --amarelo: #FFDF00;
+  /* Liverpool */
+  --liverpool: #C8102E;
+  --liverpool2:#E8192E;
+  /* Gerais */
+  --branco:  #FFFFFF;
+  --dourado: #F5A623;
+  --roxo:    #8B5CF6;
+  --cinza1:  #F8F9FA;
+  --cinza2:  #E9ECEF;
+  --cinza3:  #6C757D;
+  --sombra:  0 2px 12px rgba(0,0,0,0.10);
+  --sombra2: 0 4px 24px rgba(0,61,165,0.15);
+  --radius:  14px;
+  --radius2: 20px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--cinza1);
+  color: var(--preto);
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ===== LOADING ===== */
+.loading-screen {
+  position: fixed; inset: 0; z-index: 999;
+  background: linear-gradient(160deg, #003DA5 0%, #1a1a6e 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.loading-content { text-align: center; color: white; }
+.gremio-ball { font-size: 64px; animation: bounce 1s infinite; margin-bottom: 16px; }
+.loading-content h1 { font-size: 32px; font-weight: 900; line-height: 1.1; margin-bottom: 8px; }
+.loading-content p { opacity: 0.7; margin-bottom: 24px; }
+.loading-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 99px; margin: 0 auto; }
+.loading-fill { height: 100%; background: var(--dourado); border-radius: 99px; animation: loadfill 1.5s ease forwards; }
+@keyframes loadfill { from { width: 0; } to { width: 100%; } }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.loading-clubs { margin-top: 20px; font-size: 22px; letter-spacing: 6px; opacity: 0.8; animation: fadeClubs 2s ease-in-out; }
+@keyframes fadeClubs { from { opacity: 0; transform: translateY(8px); } to { opacity: 0.8; transform: translateY(0); } }
+
+/* ===== APP ===== */
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+.hidden { display: none !important; }
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, var(--azul) 0%, #001f5b 100%);
+  color: white; padding: 16px 20px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,61,165,0.3);
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.avatar {
+  width: 44px; height: 44px; background: rgba(255,255,255,0.15);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; border: 2px solid rgba(255,255,255,0.3);
+}
+.header-name { font-size: 18px; font-weight: 700; }
+.header-sub { font-size: 11px; opacity: 0.7; margin-top: 1px; }
+.header-right { display: flex; align-items: center; gap: 10px; }
+.streak-badge {
+  background: rgba(245,166,35,0.2); border: 1.5px solid var(--dourado);
+  border-radius: 20px; padding: 4px 10px; display: flex; align-items: center; gap: 4px;
+}
+.streak-badge .fire { font-size: 16px; }
+#streak-num { font-weight: 700; font-size: 15px; color: var(--dourado); }
+.xp-display { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); }
+
+/* ===== NAV ===== */
+.nav-tabs {
+  display: flex; background: white; border-bottom: 1px solid var(--cinza2);
+  position: sticky; top: 72px; z-index: 99;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.nav-tab {
+  flex: 1; padding: 12px 4px; border: none; background: none;
+  font-size: 12px; font-weight: 600; color: var(--cinza3);
+  cursor: pointer; transition: all 0.2s; border-bottom: 3px solid transparent;
+}
+.nav-tab.active { color: var(--azul); border-bottom-color: var(--azul); }
+
+/* ===== MAIN ===== */
+.main-content { flex: 1; padding: 16px; padding-bottom: 32px; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ===== DAILY BANNER ===== */
+.daily-banner {
+  background: linear-gradient(135deg, var(--azul) 0%, #0052CC 100%);
+  color: white; border-radius: var(--radius2); padding: 18px 16px;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+  box-shadow: var(--sombra2);
+}
+.banner-icon { font-size: 32px; flex-shrink: 0; }
+.banner-text { flex: 1; }
+.banner-title { font-size: 17px; font-weight: 700; }
+.banner-sub { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+.btn-banner {
+  width: 40px; height: 40px; background: rgba(255,255,255,0.2);
+  border: none; border-radius: 50%; color: white; font-size: 18px;
+  cursor: pointer; flex-shrink: 0;
+}
+
+/* ===== STATS GRID ===== */
+.stats-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 20px;
+}
+.stat-card {
+  background: white; border-radius: var(--radius); padding: 16px 14px;
+  box-shadow: var(--sombra); text-align: center; border-top: 3px solid;
+}
+.stat-card.blue      { border-color: var(--azul); }       /* Grêmio */
+.stat-card.green     { border-color: var(--verde); }      /* Brasil */
+.stat-card.gold      { border-color: var(--amarelo); }    /* Brasil */
+.stat-card.purple    { border-color: var(--liverpool); }  /* Liverpool */
+.stat-icon { font-size: 22px; margin-bottom: 4px; }
+.stat-num { font-size: 26px; font-weight: 900; color: var(--preto); }
+.stat-label { font-size: 11px; color: var(--cinza3); margin-top: 2px; font-weight: 600; text-transform: uppercase; }
+
+/* ===== SECTION TITLE ===== */
+.section-title {
+  font-size: 15px; font-weight: 700; color: var(--preto);
+  margin: 20px 0 10px; letter-spacing: -0.3px;
+}
+
+/* ===== MATÉRIAS LIST (home) ===== */
+.materia-item {
+  background: white; border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 8px; box-shadow: var(--sombra);
+}
+.materia-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.materia-nome { font-size: 14px; font-weight: 600; }
+.materia-count { font-size: 12px; color: var(--cinza3); }
+.progress-bar { height: 6px; background: var(--cinza2); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--azul), var(--azul2)); transition: width 0.8s ease; }
+
+/* ===== AULAS LIST ===== */
+.aula-card {
+  background: white; border-radius: var(--radius); padding: 14px;
+  margin-bottom: 10px; box-shadow: var(--sombra); cursor: pointer;
+  border-left: 4px solid var(--azul);
+}
+.aula-card-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.aula-materia { font-size: 13px; font-weight: 700; color: var(--azul); }
+.aula-data { font-size: 12px; color: var(--cinza3); }
+.aula-capitulo { font-size: 12px; color: var(--cinza3); margin-bottom: 6px; }
+.aula-resumo { font-size: 13px; line-height: 1.5; color: #444; }
+.aula-trimestre {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  background: var(--cinza2); color: var(--cinza3);
+  border-radius: 99px; padding: 2px 8px; margin-top: 6px;
+}
+
+/* ===== REVISÃO CARD ===== */
+.revisao-card {
+  background: white; border-radius: var(--radius); padding: 16px;
+  box-shadow: var(--sombra); text-align: center;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state { text-align: center; padding: 32px 16px; color: var(--cinza3); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.6; }
+
+/* ===== FORM ===== */
+.form-header { margin-bottom: 20px; }
+.form-header h2 { font-size: 22px; font-weight: 800; }
+.form-header p { font-size: 14px; color: var(--cinza3); margin-top: 4px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--cinza2);
+  border-radius: 10px; font-size: 14px; background: white;
+  transition: border-color 0.2s; font-family: inherit;
+  -webkit-appearance: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none; border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(0,61,165,0.1);
+}
+.form-group textarea { resize: vertical; min-height: 120px; }
+
+/* Upload */
+.upload-area {
+  border: 2px dashed var(--cinza2); border-radius: 10px;
+  padding: 24px; text-align: center; cursor: pointer;
+  transition: all 0.2s; background: var(--cinza1);
+}
+.upload-area:hover { border-color: var(--azul); background: rgba(0,61,165,0.03); }
+.upload-icon { font-size: 32px; margin-bottom: 8px; }
+.upload-text { font-size: 13px; color: var(--cinza3); }
+.foto-preview-img { width: 100%; border-radius: 10px; margin-top: 8px; max-height: 200px; object-fit: cover; }
+
+/* Dica Bernoulli */
+.bernoulli-tip {
+  background: rgba(0,61,165,0.06); border: 1.5px solid rgba(0,61,165,0.2);
+  border-radius: 10px; padding: 12px 14px; display: flex;
+  align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.tip-icon { font-size: 20px; flex-shrink: 0; }
+.tip-text { flex: 1; font-size: 13px; }
+.tip-text strong { display: block; color: var(--azul); }
+.btn-tip {
+  padding: 6px 12px; background: var(--azul); color: white;
+  border: none; border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer; flex-shrink: 0;
+}
+
+/* ===== BOTÕES ===== */
+.btn-primary {
+  width: 100%; padding: 14px; background: linear-gradient(135deg, var(--azul), var(--azul2));
+  color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 4px 15px rgba(0,61,165,0.3);
+  transition: all 0.2s; letter-spacing: 0.2px;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,61,165,0.35); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.btn-large { padding: 16px; font-size: 17px; }
+.btn-secondary {
+  width: 100%; padding: 12px; background: var(--cinza2);
+  color: var(--preto); border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px;
+}
+
+/* ===== QUIZ ===== */
+.quiz-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.quiz-progress-text { font-size: 14px; color: var(--cinza3); font-weight: 600; }
+.quiz-score-display { font-size: 15px; font-weight: 700; display: flex; gap: 12px; }
+.score-certa { color: var(--verde); }
+.score-errada { color: var(--vermelho); }
+
+.quiz-progress-bar { height: 6px; background: var(--cinza2); border-radius: 99px; margin-bottom: 16px; }
+.quiz-progress-fill { height: 100%; background: linear-gradient(90deg, var(--verde), #2ecc71); border-radius: 99px; transition: width 0.4s ease; }
+
+.quiz-materia-badge {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  background: var(--azul); color: white; border-radius: 99px;
+  padding: 3px 12px; margin-bottom: 12px; text-transform: uppercase;
+}
+
+.pergunta-card { background: white; border-radius: var(--radius2); padding: 20px; box-shadow: var(--sombra); }
+.pergunta-texto { font-size: 16px; font-weight: 600; line-height: 1.5; margin-bottom: 20px; }
+
+.alternativas { display: flex; flex-direction: column; gap: 10px; }
+.alternativa-btn {
+  width: 100%; padding: 14px 16px; text-align: left;
+  border: 2px solid var(--cinza2); border-radius: 12px;
+  background: var(--cinza1); font-size: 14px; cursor: pointer;
+  transition: all 0.15s; font-family: inherit;
+}
+.alternativa-btn:hover { border-color: var(--azul); background: rgba(0,61,165,0.04); }
+.alternativa-btn.correta { border-color: var(--verde); background: rgba(39,174,96,0.08); color: var(--verde); font-weight: 700; }
+.alternativa-btn.errada { border-color: var(--vermelho); background: rgba(231,76,60,0.08); color: var(--vermelho); }
+.alternativa-btn:disabled { cursor: default; }
+
+.feedback-card {
+  background: white; border-radius: var(--radius2); padding: 20px;
+  box-shadow: var(--sombra); margin-top: 16px; text-align: center;
+}
+.feedback-icon { font-size: 48px; margin-bottom: 8px; }
+.feedback-titulo { font-size: 20px; font-weight: 800; margin-bottom: 12px; }
+.feedback-titulo.certa { color: var(--verde); }
+.feedback-titulo.errada { color: var(--vermelho); }
+.feedback-explicacao { font-size: 14px; line-height: 1.6; color: #444; margin-bottom: 20px; text-align: left; }
+
+/* Quiz modo tabs */
+.quiz-modo-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.quiz-modo-btn { flex: 1; padding: 10px; border: 2px solid var(--cinza2); background: white; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; color: var(--cinza3); transition: all 0.2s; }
+.quiz-modo-btn.active { border-color: var(--azul); background: var(--azul); color: white; }
+
+/* Quiz filtros */
+.quiz-filters { margin-bottom: 16px; }
+
+/* Páginas range */
+.paginas-range { display: flex; align-items: center; gap: 8px; }
+.paginas-range input { flex: 1 1 0; width: 0 !important; min-width: 60px; }
+.paginas-sep { color: var(--cinza3); font-size: 14px; white-space: nowrap; flex-shrink: 0; }
+
+/* Resultado */
+.resultado-card { text-align: center; padding: 24px 16px; }
+.resultado-icon { font-size: 72px; margin-bottom: 12px; }
+.resultado-card h2 { font-size: 26px; font-weight: 900; margin-bottom: 20px; }
+.resultado-placar { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
+.placar-item { text-align: center; }
+.placar-num { font-size: 48px; font-weight: 900; }
+.placar-num.green, .placar-item.green .placar-num { color: var(--verde); }
+.placar-num.red, .placar-item.red .placar-num { color: var(--vermelho); }
+.placar-label { font-size: 12px; color: var(--cinza3); font-weight: 600; text-transform: uppercase; }
+.placar-sep { font-size: 28px; color: var(--cinza3); font-weight: 300; }
+.resultado-taxa { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
+.resultado-msg { font-size: 15px; color: var(--cinza3); margin: 16px 0 20px; line-height: 1.5; }
+
+.revisao-errada-item {
+  background: rgba(231,76,60,0.06); border: 1.5px solid rgba(231,76,60,0.2);
+  border-radius: 10px; padding: 12px; margin-bottom: 8px; text-align: left;
+}
+.revisao-errada-item .pergunta { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.revisao-errada-item .resp-certa { font-size: 13px; color: var(--verde); }
+
+/* ===== MATÉRIAS DETALHE ===== */
+.materia-detalhe-card {
+  background: white; border-radius: var(--radius); margin-bottom: 12px;
+  box-shadow: var(--sombra); overflow: hidden;
+}
+.materia-detalhe-header {
+  padding: 14px 16px; background: linear-gradient(135deg, var(--azul), var(--azul2));
+  color: white; display: flex; justify-content: space-between; align-items: center;
+}
+.materia-detalhe-nome { font-size: 16px; font-weight: 700; }
+.materia-detalhe-stats { font-size: 13px; opacity: 0.85; }
+.materia-detalhe-body { padding: 14px 16px; }
+.materia-aula-mini {
+  font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--cinza2);
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.materia-aula-mini:last-child { border-bottom: none; }
+.mini-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--azul); flex-shrink: 0; margin-top: 4px; }
+.mini-texto { flex: 1; }
+.mini-data { font-size: 11px; color: var(--cinza3); }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200;
+}
+.modal {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; background: white; z-index: 201;
+  border-radius: 20px 20px 0 0; padding: 24px 20px 32px;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.2);
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateX(-50%) translateY(100%); } to { transform: translateX(-50%) translateY(0); } }
+.modal-icon { font-size: 48px; text-align: center; margin-bottom: 4px; }
+.modal h2 { text-align: center; font-size: 20px; font-weight: 800; margin-bottom: 2px; }
+.modal-sub { text-align: center; font-size: 13px; color: var(--cinza3); margin-bottom: 14px; }
+
+/* Card do resumo */
+.resumo-card {
+  background: white; border: 2px solid var(--azul);
+  border-radius: 14px; margin-bottom: 16px; overflow: hidden;
+}
+.resumo-header {
+  background: var(--azul); color: white;
+  font-size: 13px; font-weight: 700;
+  padding: 8px 14px; letter-spacing: 0.3px;
+}
+.modal-resumo {
+  padding: 14px 16px;
+  font-size: 14px; line-height: 1.7;
+  max-height: 280px; overflow-y: auto;
+  white-space: pre-wrap;
+}
+/* Negrito gerado pela IA (marcado com **) */
+.modal-resumo strong { color: var(--azul); }
+
+.modal-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* ===== LOADING SPINNER ===== */
+.spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== GUIA DE PROVA ===== */
+.guia-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px;
+}
+.guia-titulo { font-size: 17px; font-weight: 800; color: var(--azul); }
+.guia-sub { font-size: 13px; color: var(--cinza3); margin-top: 2px; }
+.btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+
+.guia-conteudo { font-size: 14px; line-height: 1.7; }
+
+/* Seções do guia */
+.guia-secao {
+  background: white; border-radius: 14px; padding: 16px;
+  margin-bottom: 14px; border: 1.5px solid var(--cinza2);
+}
+.guia-secao h3 { font-size: 15px; font-weight: 800; margin-bottom: 12px; color: #222; }
+.guia-secao ul { padding-left: 18px; margin: 0; }
+.guia-secao li { margin-bottom: 6px; }
+.guia-secao strong { color: var(--azul); }
+
+/* Seção de destaque — o que mais cai */
+.guia-secao.destaque {
+  border-color: var(--amarelo); background: #FFFDE7;
+}
+.guia-secao.destaque h3 { color: #B8860B; }
+
+/* Seção de alerta — pegadinhas */
+.guia-secao.alerta {
+  border-color: var(--liverpool); background: #FFF5F5;
+}
+.guia-secao.alerta h3 { color: var(--liverpool); }
+
+/* Tabela comparativa */
+.guia-conteudo table {
+  width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px;
+}
+.guia-conteudo th {
+  background: var(--azul); color: white;
+  padding: 8px 10px; text-align: left; font-size: 12px;
+}
+.guia-conteudo td {
+  padding: 8px 10px; border-bottom: 1px solid var(--cinza2); vertical-align: top;
+}
+.guia-conteudo tr:nth-child(even) td { background: var(--cinza1); }
+
+/* Card de guia anterior */
+.guia-card {
+  background: white; border: 1.5px solid var(--cinza2);
+  border-radius: 12px; padding: 14px; margin-bottom: 10px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.guia-card:hover { border-color: var(--azul); }
+.guia-card-titulo { font-weight: 700; font-size: 14px; }
+.guia-card-sub { font-size: 12px; color: var(--cinza3); margin-top: 3px; }
+
+/* ===== RODAPÉ CLUBES ===== */
+.footer-clubes {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 16px 20px; background: white;
+  border-top: 1px solid var(--cinza2);
+}
+.clube-tag {
+  font-size: 12px; font-weight: 700; border-radius: 99px;
+  padding: 4px 10px; letter-spacing: 0.3px;
+}
+.clube-tag.gremio    { background: rgba(0,61,165,0.08);  color: var(--azul); }
+.clube-tag.brasil    { background: rgba(0,156,59,0.08);  color: var(--verde); }
+.clube-tag.liverpool { background: rgba(200,16,46,0.08); color: var(--liverpool); }
+.clube-sep { color: var(--cinza3); font-size: 12px; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cinza2); border-radius: 99px; }

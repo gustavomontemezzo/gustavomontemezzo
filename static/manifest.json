@@ -1,0 +1,22 @@
+{
+  "name": "Arena do Conhecimento",
+  "short_name": "Estudo Tiago",
+  "description": "Sistema de estudos do Tiago — Colégio Vicentino São José",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#003DA5",
+  "theme_color": "#003DA5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
