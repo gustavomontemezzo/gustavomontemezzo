@@ -444,56 +444,64 @@ async def listar_materias(usuario: str = "tiago"):
 
 @app.post("/api/aulas")
 async def criar_aula(aula: AulaCreate):
+    import traceback
     usuario = aula.usuario or "tiago"
     conn = get_db()
     c = conn.cursor()
 
-    # Coletar todas as fotos enviadas nos últimos 60 segundos
-    fotos_recentes = []
     try:
-        agora = datetime.now().timestamp()
-        fotos_recentes = [
-            str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
-            if f.is_file() and (agora - f.stat().st_mtime) < 60
-            and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
-        ]
-    except Exception as e:
-        print(f"Erro ao coletar fotos: {e}")
+        # Coletar fotos recentes
+        fotos_recentes = []
+        try:
+            agora = datetime.now().timestamp()
+            fotos_recentes = [
+                str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
+                if f.is_file() and (agora - f.stat().st_mtime) < 60
+                and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
+            ]
+        except Exception as e:
+            print(f"Erro ao coletar fotos: {e}")
 
-    ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
-    resumo = ia_result.get("resumo", "")
-    perguntas = ia_result.get("perguntas", [])
+        ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
+        resumo = ia_result.get("resumo", "")
+        perguntas = ia_result.get("perguntas", [])
 
-    c.execute("""
-        INSERT INTO aulas (usuario, data, materia, trimestre, capitulo, pagina_ini, pagina_fim, conteudo, fonte, resumo)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (usuario, aula.data, aula.materia, aula.trimestre, aula.capitulo, aula.pagina_ini, aula.pagina_fim, aula.conteudo, aula.fonte, resumo))
-    aula_id = c.lastrowid
-
-    for p in perguntas:
         c.execute("""
-            INSERT INTO quiz_perguntas (usuario, aula_id, materia, trimestre, pergunta, alternativas, correta, explicacao)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (usuario, aula_id, aula.materia, aula.trimestre, p["pergunta"],
-              json.dumps(p["alternativas"], ensure_ascii=False),
-              p["correta"], p.get("explicacao", "")))
+            INSERT INTO aulas (usuario, data, materia, trimestre, capitulo, pagina_ini, pagina_fim, conteudo, fonte, resumo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (usuario, aula.data, aula.materia, aula.trimestre, aula.capitulo, aula.pagina_ini, aula.pagina_fim, aula.conteudo, aula.fonte, resumo))
+        aula_id = c.lastrowid
 
-    hoje = date.today().isoformat()
-    existe_streak = c.execute("SELECT id FROM streaks WHERE usuario=? AND data=?", (usuario, hoje)).fetchone()
-    if existe_streak:
-        c.execute("UPDATE streaks SET registros = registros + 1 WHERE usuario=? AND data=?", (usuario, hoje))
-    else:
-        c.execute("INSERT INTO streaks (usuario, data, registros) VALUES (?, ?, 1)", (usuario, hoje))
+        for p in perguntas:
+            c.execute("""
+                INSERT INTO quiz_perguntas (usuario, aula_id, materia, trimestre, pergunta, alternativas, correta, explicacao)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (usuario, aula_id, aula.materia, aula.trimestre, p["pergunta"],
+                  json.dumps(p["alternativas"], ensure_ascii=False),
+                  p["correta"], p.get("explicacao", "")))
 
-    conn.commit()
-    conn.close()
+        hoje = date.today().isoformat()
+        existe_streak = c.execute("SELECT id FROM streaks WHERE usuario=? AND data=?", (usuario, hoje)).fetchone()
+        if existe_streak:
+            c.execute("UPDATE streaks SET registros = registros + 1 WHERE usuario=? AND data=?", (usuario, hoje))
+        else:
+            c.execute("INSERT INTO streaks (usuario, data, registros) VALUES (?, ?, 1)", (usuario, hoje))
 
-    return {
-        "id": aula_id,
-        "resumo": resumo,
-        "total_perguntas": len(perguntas),
-        "mensagem": "Aula registrada com sucesso! 🎉"
-    }
+        conn.commit()
+        conn.close()
+
+        return {
+            "id": aula_id,
+            "resumo": resumo,
+            "total_perguntas": len(perguntas),
+            "mensagem": "Aula registrada com sucesso! 🎉"
+        }
+
+    except Exception as e:
+        conn.close()
+        tb = traceback.format_exc()
+        print(f"ERRO criar_aula: {tb}")
+        raise HTTPException(status_code=500, detail=f"{str(e)} | {tb}")
 
 @app.get("/api/aulas")
 async def listar_aulas(usuario: str = "tiago", materia: Optional[str] = None, trimestre: Optional[str] = None):
