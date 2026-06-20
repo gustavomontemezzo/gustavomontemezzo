@@ -157,14 +157,16 @@ async function ativarPush(regParam) {
 window.ativarNotificacoes = async function() {
   const btn = document.getElementById('btn-notif');
   if (btn) btn.textContent = 'Ativando...';
-  const resultado = await ativarPush();
+  const timeout = new Promise(resolve => setTimeout(() => resolve('timeout_30s'), 30000));
+  const resultado = await Promise.race([ativarPush(), timeout]);
   if (btn) {
     if (resultado === 'ok') {
       btn.textContent = '✅ Notificações ativas!';
       btn.style.background = '#27AE60';
     } else {
-      btn.textContent = '❌ Erro: ' + resultado;
+      btn.textContent = '❌ ' + resultado;
       btn.style.background = '#E74C3C';
+      btn.style.fontSize = '12px';
     }
   }
 };
