@@ -139,7 +139,7 @@ async function registrarServiceWorker() {
       })
     });
   } catch (e) {
-    console.warn('Push não disponível:', e);
+    console.error('PUSH ERRO:', e.name, e.message, e);
   }
 }
 
