@@ -857,6 +857,7 @@ class PushSubscription(BaseModel):
 
 @app.post("/api/push/subscribe")
 async def subscribe_push(sub: PushSubscription):
+    print(f"PUSH SUBSCRIBE: usuario={sub.usuario} endpoint={sub.endpoint[:40]}")
     conn = get_db()
     conn.execute("""
         INSERT OR REPLACE INTO push_subscriptions (usuario, endpoint, p256dh, auth)

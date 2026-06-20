@@ -116,16 +116,15 @@ async function registrarServiceWorker() {
     }
     if (Notification.permission !== 'granted') return;
 
-    // Verificar se já tem subscription ativa
+    // Cancelar subscription antiga e criar nova (garante usuario correto)
     let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      const keyRes = await fetch('/api/push/vapid-public-key');
-      const { publicKey } = await keyRes.json();
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey)
-      });
-    }
+    if (sub) await sub.unsubscribe();
+    const keyRes = await fetch('/api/push/vapid-public-key');
+    const { publicKey } = await keyRes.json();
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
 
     // Enviar subscription ao servidor
     const subJson = sub.toJSON();
