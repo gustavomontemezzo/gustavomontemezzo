@@ -362,7 +362,7 @@ CONTEÚDO ESTUDADO:
 {f"(Há {len(fotos)} foto(s) do caderno/apostila acima — leia o conteúdo de todas as imagens e use-as para enriquecer o resumo e o quiz.)" if fotos else ""}
 
 TAREFA:
-1. Crie um RESUMO CRIATIVO (máx. 200 palavras) do conteúdo.
+1. Crie um RESUMO CRIATIVO (mínimo 400 palavras, máximo 600 palavras) do conteúdo.
    - Ocasionalmente (não sempre) use uma analogia com futebol quando for realmente natural e enriquecedora. Na maioria das vezes, explique o conteúdo de forma direta e clara.
    - Seja animado, use emojis com moderação.
    - Destaque os 3-4 pontos mais importantes em negrito.
@@ -915,6 +915,187 @@ async def debug_colunas():
         tabelas[tabela] = [r["name"] for r in rows]
     conn.close()
     return tabelas
+
+
+# ─── Novos endpoints: Quiz do Dia, Semana, Dificuldades, Aulas do Dia ────────
+
+@app.get("/api/aulas/dia")
+async def aulas_do_dia(usuario: str = "tiago", data: Optional[str] = None):
+    """Retorna aulas do dia com total de perguntas e se o quiz foi concluído."""
+    if not data:
+        data = date.today().isoformat()
+    conn = get_db()
+    c = conn.cursor()
+    rows = c.execute(
+        "SELECT * FROM aulas WHERE usuario=? AND data=? ORDER BY criado_em",
+        (usuario, data)
+    ).fetchall()
+
+    aulas_out = []
+    for a in rows:
+        aula_dict = dict(a)
+        total_perguntas = c.execute(
+            "SELECT COUNT(*) FROM quiz_perguntas WHERE aula_id=? AND usuario=?",
+            (a["id"], usuario)
+        ).fetchone()[0]
+
+        # Quiz concluído = pelo menos 8 respostas para perguntas desta aula
+        pergunta_ids = [r[0] for r in c.execute(
+            "SELECT id FROM quiz_perguntas WHERE aula_id=? AND usuario=?",
+            (a["id"], usuario)
+        ).fetchall()]
+        quiz_concluido = False
+        if pergunta_ids:
+            placeholders = ",".join("?" * len(pergunta_ids))
+            respostas = c.execute(
+                f"SELECT COUNT(*) FROM quiz_resultados WHERE usuario=? AND pergunta_id IN ({placeholders})",
+                [usuario] + pergunta_ids
+            ).fetchone()[0]
+            quiz_concluido = respostas >= 8
+
+        aulas_out.append({
+            "id": aula_dict["id"],
+            "materia": aula_dict["materia"],
+            "capitulo": aula_dict.get("capitulo", ""),
+            "trimestre": aula_dict["trimestre"],
+            "resumo": aula_dict.get("resumo", ""),
+            "total_perguntas": total_perguntas,
+            "quiz_concluido": quiz_concluido
+        })
+
+    conn.close()
+    return {"aulas": aulas_out, "data": data}
+
+
+@app.get("/api/quiz/dia")
+async def quiz_do_dia(usuario: str = "tiago", aula_id: int = 0):
+    """Retorna perguntas para o quiz de uma aula + revisões pendentes da mesma matéria."""
+    if not aula_id:
+        raise HTTPException(400, "aula_id é obrigatório")
+    conn = get_db()
+    c = conn.cursor()
+
+    # Dados da aula
+    aula = c.execute("SELECT * FROM aulas WHERE id=? AND usuario=?", (aula_id, usuario)).fetchone()
+    if not aula:
+        conn.close()
+        raise HTTPException(404, "Aula não encontrada")
+
+    materia = aula["materia"]
+
+    # 10 perguntas da aula indicada
+    rows_novas = c.execute(
+        "SELECT * FROM quiz_perguntas WHERE aula_id=? AND usuario=? LIMIT 10",
+        (aula_id, usuario)
+    ).fetchall()
+    perguntas_novas = []
+    for r in rows_novas:
+        p = dict(r)
+        p["alternativas"] = json.loads(p["alternativas"])
+        p["revisao"] = False
+        perguntas_novas.append(p)
+
+    # Perguntas de revisão: outras aulas da mesma matéria onde o último resultado foi errado
+    revisao_rows = c.execute("""
+        SELECT qp.* FROM quiz_perguntas qp
+        WHERE qp.usuario=? AND qp.materia=? AND qp.aula_id != ?
+          AND qp.id IN (
+            SELECT pergunta_id FROM quiz_resultados
+            WHERE usuario=? AND id IN (
+              SELECT MAX(id) FROM quiz_resultados WHERE usuario=? GROUP BY pergunta_id
+            ) AND correta=0
+          )
+        ORDER BY RANDOM() LIMIT 5
+    """, (usuario, materia, aula_id, usuario, usuario)).fetchall()
+
+    perguntas_revisao = []
+    for r in revisao_rows:
+        p = dict(r)
+        p["alternativas"] = json.loads(p["alternativas"])
+        p["revisao"] = True
+        perguntas_revisao.append(p)
+
+    conn.close()
+    return {
+        "aula": dict(aula),
+        "perguntas": perguntas_novas + perguntas_revisao
+    }
+
+
+@app.get("/api/quiz/semana")
+async def quiz_semana(usuario: str = "tiago"):
+    """Retorna perguntas de revisão pendentes agrupadas por matéria."""
+    conn = get_db()
+    c = conn.cursor()
+
+    # Perguntas cujo último resultado foi errado
+    rows = c.execute("""
+        SELECT qp.* FROM quiz_perguntas qp
+        WHERE qp.usuario=?
+          AND qp.id IN (
+            SELECT pergunta_id FROM quiz_resultados
+            WHERE usuario=? AND id IN (
+              SELECT MAX(id) FROM quiz_resultados WHERE usuario=? GROUP BY pergunta_id
+            ) AND correta=0
+          )
+        ORDER BY qp.materia
+    """, (usuario, usuario, usuario)).fetchall()
+
+    por_materia = {}
+    for r in rows:
+        p = dict(r)
+        p["alternativas"] = json.loads(p["alternativas"])
+        m = p["materia"] or "Sem matéria"
+        if m not in por_materia:
+            por_materia[m] = []
+        por_materia[m].append(p)
+
+    conn.close()
+    return {
+        "materias": [
+            {"materia": m, "total": len(ps), "perguntas": ps}
+            for m, ps in por_materia.items()
+        ]
+    }
+
+
+@app.get("/api/dificuldades")
+async def mapa_dificuldades(usuario: str = "tiago"):
+    """Retorna mapa de dificuldades por matéria e capítulo (aulas com erros)."""
+    conn = get_db()
+    c = conn.cursor()
+
+    rows = c.execute("""
+        SELECT
+            a.materia,
+            a.capitulo,
+            a.id as aula_id,
+            a.data,
+            COUNT(qr.id) as total_respondidas,
+            SUM(CASE WHEN qr.correta=0 THEN 1 ELSE 0 END) as total_erros
+        FROM quiz_resultados qr
+        JOIN quiz_perguntas qp ON qr.pergunta_id = qp.id
+        JOIN aulas a ON qp.aula_id = a.id
+        WHERE qr.usuario=? AND a.usuario=?
+        GROUP BY a.id
+        HAVING total_erros > 0
+        ORDER BY total_erros DESC
+    """, (usuario, usuario)).fetchall()
+
+    conn.close()
+    return {
+        "dificuldades": [
+            {
+                "materia": r["materia"],
+                "capitulo": r["capitulo"] or "",
+                "aula_id": r["aula_id"],
+                "data": r["data"],
+                "total_erros": r["total_erros"],
+                "total_respondidas": r["total_respondidas"]
+            }
+            for r in rows
+        ]
+    }
 
 
 if __name__ == "__main__":

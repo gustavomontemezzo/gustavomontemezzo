@@ -117,9 +117,10 @@ function trocarAba(usuario) {
 async function carregarPainel(usuario) {
   document.getElementById('conteudo').innerHTML = '<div style="text-align:center;padding:60px 0"><div class="spinner"></div></div>';
 
-  const [stats, aulasRes] = await Promise.all([
+  const [stats, aulasRes, difsRes] = await Promise.all([
     fetch(`/api/stats?usuario=${usuario}`).then(r => r.json()),
-    fetch(`/api/aulas?usuario=${usuario}`).then(r => r.json())
+    fetch(`/api/aulas?usuario=${usuario}`).then(r => r.json()),
+    fetch(`/api/dificuldades?usuario=${usuario}`).then(r => r.json())
   ]);
 
   const nome = usuario === 'tiago' ? 'Tiago' : 'Henrique';
@@ -212,6 +213,31 @@ async function carregarPainel(usuario) {
           <div class="alerta-icon">${a.icon}</div>
           <div class="alerta-texto"><div class="alerta-titulo">${a.titulo}</div>${a.texto}</div>
         </div>`).join('')}
+    </div>
+
+    <!-- Mapa de Dificuldades -->
+    <div class="full-row">
+      <div class="card">
+        <div class="card-title">📉 Mapa de Dificuldades</div>
+        ${(() => {
+          const difs = difsRes.dificuldades || [];
+          if (difs.length === 0) return '<div style="color:#27AE60;font-size:13px;font-weight:600">✅ Nenhuma dificuldade registrada</div>';
+          const porMateria = {};
+          difs.forEach(d => {
+            if (!porMateria[d.materia]) porMateria[d.materia] = [];
+            porMateria[d.materia].push(d);
+          });
+          return Object.entries(porMateria).map(([mat, items]) => `
+            <div style="margin-bottom:14px">
+              <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#003DA5">${mat}</div>
+              ${items.map(d => `
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid #f0f0f0">
+                  <span style="color:#444">${d.capitulo || 'Sem capítulo'} <span style="color:#999;font-size:11px">(${d.data || ''})</span></span>
+                  <span style="color:#E74C3C;font-weight:700">${d.total_erros} erro${d.total_erros !== 1 ? 's' : ''} / ${d.total_respondidas} resp.</span>
+                </div>`).join('')}
+            </div>`).join('');
+        })()}
+      </div>
     </div>
 
     <!-- Matérias + Quiz -->

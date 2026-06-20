@@ -203,9 +203,11 @@ function showTab(tab) {
   document.getElementById(`section-${tab}`).classList.add('active');
   document.getElementById(`tab-${tab}`).classList.add('active');
 
-  if (tab === 'materias') renderMateriasDetalhe();
+  if (tab === 'materias') { renderMateriasDetalhe(); carregarDificuldades(); }
   if (tab === 'home') carregarStats();
   if (tab === 'prova') carregarHistoricoGuias();
+  if (tab === 'hoje') carregarPainelDia();
+  if (tab === 'quiz') carregarRevisaoSemana();
 }
 
 // ─── Carregar Dados ───────────────────────────────────────────────────────────
@@ -317,12 +319,13 @@ async function carregarBernoulli() {
 
 // ─── Registrar Aula ───────────────────────────────────────────────────────────
 
-async function registrarAula(event) {
+async function registrarAula(event, acao = 'proximo') {
   event.preventDefault();
 
-  const btn = document.getElementById('btn-registrar');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Gerando resumo e quiz com IA...';
+  const btnProx = document.getElementById('btn-salvar-proximo');
+  const btnFin  = document.getElementById('btn-finalizar-dia');
+  if (btnProx) { btnProx.disabled = true; btnProx.innerHTML = '<span class="spinner"></span> Gerando...'; }
+  if (btnFin)  { btnFin.disabled = true; }
 
   const pIni = document.getElementById('input-pagina-ini').value;
   const pFim = document.getElementById('input-pagina-fim').value;
@@ -348,26 +351,36 @@ async function registrarAula(event) {
     const result = await post('/api/aulas', data);
     state.ultimaAulaId = result.id;
 
-    // Mostrar modal de sucesso
-    document.getElementById('modal-resumo').innerHTML = formatarTexto(result.resumo);
-    document.getElementById('modal-sucesso').classList.remove('hidden');
-    document.getElementById('modal-overlay').classList.remove('hidden');
+    // Salvar data e trimestre antes de resetar
+    const dataAtual = document.getElementById('input-data').value;
+    const trimestreAtual = document.getElementById('input-trimestre').value;
 
-    // Limpar form
+    // Limpar form (exceto data e trimestre)
     document.getElementById('form-aula').reset();
-    document.getElementById('input-data').value = new Date().toISOString().split('T')[0];
+    document.getElementById('input-data').value = dataAtual;
+    document.getElementById('input-trimestre').value = trimestreAtual;
     limparFotos();
 
     // Recarregar stats
     await carregarStats();
+
+    if (acao === 'finalizar') {
+      // Ir para o painel do dia
+      showTab('hoje');
+    } else {
+      // Mostrar modal de sucesso e permanecer no Treino
+      document.getElementById('modal-resumo').innerHTML = formatarTexto(result.resumo);
+      document.getElementById('modal-sucesso').classList.remove('hidden');
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
 
   } catch(e) {
     alert('Erro ao registrar aula. Tente novamente.');
     console.error(e);
   }
 
-  btn.disabled = false;
-  btn.innerHTML = '⚡ Registrar e Gerar Quiz';
+  if (btnProx) { btnProx.disabled = false; btnProx.innerHTML = '💾 Salvar e adicionar próxima'; }
+  if (btnFin)  { btnFin.disabled = false; }
 }
 
 // ─── Upload Preview ───────────────────────────────────────────────────────────
@@ -428,8 +441,7 @@ function fecharModal() {
 
 function irParaQuiz() {
   fecharModal();
-  showTab('quiz');
-  // Pré-selecionar matéria da aula recém registrada
+  showTab('hoje');
 }
 
 // ─── Ver aula ─────────────────────────────────────────────────────────────────
@@ -497,7 +509,8 @@ function renderPergunta() {
   document.getElementById('q-total').textContent = q.perguntas.length;
   document.getElementById('score-certas').textContent = q.certas;
   document.getElementById('score-erradas').textContent = q.erradas;
-  document.getElementById('q-materia-badge').textContent = p.materia || '';
+  const badgeEl = document.getElementById('q-materia-badge');
+  badgeEl.textContent = (p.revisao ? '🔄 Revisão — ' : '') + (p.materia || '');
 
   // Progress bar
   const pct = ((q.atual) / q.perguntas.length) * 100;
@@ -660,7 +673,9 @@ function reiniciarQuiz() {
   state.quiz = { perguntas: [], atual: 0, certas: 0, erradas: 0, erradasDetalhes: [], ativa: false };
   document.getElementById('quiz-game').classList.add('hidden');
   document.getElementById('quiz-resultado').classList.add('hidden');
+  document.getElementById('quiz-resumo-tela').classList.add('hidden');
   document.getElementById('quiz-selector').classList.remove('hidden');
+  quizDiaData = null;
 }
 
 // ─── Revisão espaçada ─────────────────────────────────────────────────────────
@@ -841,4 +856,200 @@ async function abrirGuia(id) {
   const pages = (guia.pagina_ini && guia.pagina_fim) ? ` • Págs. ${guia.pagina_ini}–${guia.pagina_fim}` : '';
   mostrarGuia(guia.guia_html, guia.materia, guia.trimestre,
     guia.pagina_ini, guia.pagina_fim);
+}
+
+// ─── Painel do Dia ────────────────────────────────────────────────────────────
+
+const EMOJIS_MATERIA = {
+  'Matemática': '📐', 'Física': '⚛️', 'Química': '🧪', 'Biologia': '🧬',
+  'História': '🏛️', 'Geografia': '🌍', 'Filosofia': '💭', 'Sociologia': '👥',
+  'Língua Portuguesa': '📝', 'Literatura': '📚', 'Arte': '🎨',
+  'Língua Inglesa': '🇬🇧', 'Língua Espanhola': '🇪🇸',
+  'Ciências': '🔬', 'Educação Digital': '💻', 'Educação Física': '⚽',
+  'Ensino Religioso': '🙏', 'Redação': '✍️'
+};
+
+function emojiMateria(materia) {
+  return EMOJIS_MATERIA[materia] || '📖';
+}
+
+async function carregarPainelDia() {
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('hoje-data-label').textContent =
+    'Aulas de ' + new Date(hoje + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+
+  const data = await get('/api/aulas/dia');
+  const aulas = data.aulas || [];
+  const cardsEl = document.getElementById('hoje-cards');
+  const topoEl  = document.getElementById('hoje-resumo-topo');
+
+  if (aulas.length === 0) {
+    topoEl.innerHTML = '';
+    cardsEl.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>Nenhuma aula registrada hoje.<br>Vá para <strong>Treino</strong> e registre!</p>
+        <button class="btn-primary" style="margin-top:16px" onclick="showTab('registrar')">📝 Ir para Treino</button>
+      </div>`;
+    return;
+  }
+
+  const concluidas = aulas.filter(a => a.quiz_concluido).length;
+  topoEl.innerHTML = concluidas === aulas.length
+    ? `🏆 Todas as ${aulas.length} matérias concluídas hoje!`
+    : `🏆 ${concluidas} de ${aulas.length} matéri${aulas.length !== 1 ? 'as' : 'a'} concluída${concluidas !== 1 ? 's' : ''} hoje`;
+
+  cardsEl.innerHTML = aulas.map(a => {
+    const emoji = emojiMateria(a.materia);
+    const concluido = a.quiz_concluido;
+    const statusHtml = concluido
+      ? `<span style="color:#27AE60;font-weight:700">✅ Concluído</span>`
+      : `<span style="color:#F5A623;font-weight:700">⏳ Quiz pendente</span>`;
+    const capituloHtml = a.capitulo
+      ? `<div style="font-size:12px;color:#666;margin-bottom:8px">📖 ${a.capitulo}</div>` : '';
+    return `
+      <div style="background:white;border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.07);${concluido ? 'opacity:0.7' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:15px;font-weight:800">${emoji} ${a.materia}${a.capitulo ? ' — ' + a.capitulo : ''}</div>
+          ${statusHtml}
+        </div>
+        <div style="font-size:12px;color:#888;margin-bottom:10px">${a.total_perguntas} perguntas geradas • ${a.trimestre}</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary" style="flex:1;font-size:13px;padding:10px" onclick="verResumoAula(${a.id})">📖 Ver Resumo</button>
+          <button class="btn-primary" style="flex:1;font-size:13px;padding:10px${concluido ? ';background:#27AE60' : ''}" onclick="abrirQuizDia(${a.id})">
+            ${concluido ? '🔁 Refazer Quiz' : '⚡ Fazer Quiz'}
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function verResumoAula(aulaId) {
+  const data = await get(`/api/aulas/${aulaId}`);
+  const aula = data.aula;
+  document.getElementById('modal-resumo').innerHTML = formatarTexto(aula.resumo || 'Resumo não disponível.');
+  document.getElementById('modal-sucesso').classList.remove('hidden');
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+// Estado do quiz do dia
+let quizDiaData = null;
+
+async function abrirQuizDia(aulaId) {
+  const data = await get(`/api/quiz/dia?aula_id=${aulaId}`);
+  if (!data.perguntas || data.perguntas.length === 0) {
+    alert('Nenhuma pergunta disponível para esta aula.');
+    return;
+  }
+  quizDiaData = data;
+
+  // Mostrar tela de resumo
+  showTab('quiz');
+  document.getElementById('quiz-selector').classList.add('hidden');
+  document.getElementById('quiz-resumo-tela').classList.remove('hidden');
+  document.getElementById('quiz-game').classList.add('hidden');
+  document.getElementById('quiz-resultado').classList.add('hidden');
+
+  const aula = data.aula;
+  document.getElementById('quiz-resumo-materia-badge').textContent = aula.materia || '';
+  document.getElementById('quiz-resumo-capitulo').textContent = aula.capitulo || '';
+  document.getElementById('quiz-resumo-texto').innerHTML = formatarTexto(aula.resumo || '');
+}
+
+function iniciarQuizDoDia() {
+  if (!quizDiaData) return;
+
+  state.quiz = {
+    perguntas: quizDiaData.perguntas,
+    atual: 0, certas: 0, erradas: 0,
+    erradasDetalhes: [], ativa: true,
+    origemDia: true
+  };
+
+  document.getElementById('quiz-resumo-tela').classList.add('hidden');
+  document.getElementById('quiz-game').classList.remove('hidden');
+  renderPergunta();
+}
+
+function voltarPainelDia() {
+  document.getElementById('quiz-resultado').classList.add('hidden');
+  document.getElementById('quiz-selector').classList.remove('hidden');
+  showTab('hoje');
+}
+
+// ─── Revisão da Semana ────────────────────────────────────────────────────────
+
+async function carregarRevisaoSemana() {
+  const el = document.getElementById('revisao-semana-lista');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:12px;color:#999">Carregando...</div>';
+
+  const data = await get('/api/quiz/semana');
+  const materias = data.materias || [];
+
+  if (materias.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:12px;color:#27AE60;font-weight:700">✅ Nenhuma revisão pendente esta semana!</div>';
+    return;
+  }
+
+  el.innerHTML = materias.map(m => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0">
+      <div>
+        <span style="font-size:14px">${emojiMateria(m.materia)} <strong>${m.materia}</strong></span>
+        <span style="font-size:12px;color:#666;margin-left:8px">${m.total} questão${m.total !== 1 ? 'ões' : ''} pendente${m.total !== 1 ? 's' : ''}</span>
+      </div>
+      <button class="btn-primary" style="font-size:12px;padding:8px 14px" onclick="iniciarRevisaoMateria(${JSON.stringify(m.perguntas).replace(/"/g,'&quot;')})">Revisar</button>
+    </div>
+  `).join('');
+}
+
+function iniciarRevisaoMateria(perguntas) {
+  if (!perguntas || perguntas.length === 0) return;
+
+  state.quiz = {
+    perguntas,
+    atual: 0, certas: 0, erradas: 0,
+    erradasDetalhes: [], ativa: true,
+    origemDia: false
+  };
+
+  document.getElementById('quiz-selector').classList.add('hidden');
+  document.getElementById('quiz-resumo-tela').classList.add('hidden');
+  document.getElementById('quiz-resultado').classList.add('hidden');
+  document.getElementById('quiz-game').classList.remove('hidden');
+  renderPergunta();
+}
+
+// ─── Mapa de Dificuldades (aluno) ────────────────────────────────────────────
+
+async function carregarDificuldades() {
+  const el = document.getElementById('dificuldades-lista');
+  if (!el) return;
+
+  const data = await get('/api/dificuldades');
+  const difs = data.dificuldades || [];
+
+  if (difs.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:#27AE60;font-size:13px;padding:8px">✅ Nenhuma dificuldade registrada ainda!</div>';
+    return;
+  }
+
+  // Agrupar por matéria
+  const porMateria = {};
+  difs.forEach(d => {
+    if (!porMateria[d.materia]) porMateria[d.materia] = [];
+    porMateria[d.materia].push(d);
+  });
+
+  el.innerHTML = Object.entries(porMateria).map(([materia, items]) => `
+    <div style="margin-bottom:12px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">${emojiMateria(materia)} ${materia}</div>
+      ${items.map(d => `
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#444">
+          <span>${d.capitulo || 'Sem capítulo'}</span>
+          <span style="color:#E74C3C;font-weight:700">${d.total_erros} erro${d.total_erros !== 1 ? 's' : ''} / ${d.total_respondidas}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 }

@@ -61,6 +61,7 @@
   <!-- NAVEGAÇÃO -->
   <nav class="nav-tabs">
     <button class="nav-tab active" onclick="showTab('home')" id="tab-home">🏟️ Campo</button>
+    <button class="nav-tab" onclick="showTab('hoje')" id="tab-hoje">📅 Hoje</button>
     <button class="nav-tab" onclick="showTab('registrar')" id="tab-registrar">📝 Treino</button>
     <button class="nav-tab" onclick="showTab('quiz')" id="tab-quiz">⚡ Quiz</button>
     <button class="nav-tab" onclick="showTab('prova')" id="tab-prova">🏆 Véspera de Jogo</button>
@@ -123,6 +124,16 @@
         </button>
       </div>
 
+    </section>
+
+    <!-- ===== HOJE ===== -->
+    <section id="section-hoje" class="section">
+      <div class="form-header">
+        <h2>📅 Painel do Dia</h2>
+        <p id="hoje-data-label">Aulas de hoje</p>
+      </div>
+      <div id="hoje-resumo-topo" style="font-size:15px;font-weight:700;margin-bottom:16px;text-align:center;padding:12px;background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.07)"></div>
+      <div id="hoje-cards"></div>
     </section>
 
     <!-- ===== REGISTRAR AULA ===== -->
@@ -207,9 +218,14 @@ Ex: Hoje estudamos fotossíntese. O prof explicou que as plantas usam luz solar 
           <button type="button" class="btn-tip" onclick="usarBernoulli()">Usar</button>
         </div>
 
-        <button type="submit" class="btn-primary btn-large" id="btn-registrar">
-          ⚡ Registrar e Gerar Quiz
-        </button>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+          <button type="button" class="btn-primary btn-large" id="btn-salvar-proximo" onclick="registrarAula(event, 'proximo')">
+            💾 Salvar e adicionar próxima
+          </button>
+          <button type="button" class="btn-primary btn-large" id="btn-finalizar-dia" onclick="registrarAula(event, 'finalizar')" style="background:linear-gradient(135deg,#27AE60,#1e8449)">
+            ✅ Finalizar dia
+          </button>
+        </div>
       </form>
     </section>
 
@@ -220,65 +236,41 @@ Ex: Hoje estudamos fotossíntese. O prof explicou que as plantas usam luz solar 
       <div id="quiz-selector">
         <div class="form-header">
           <h2>⚡ Arena do Quiz</h2>
-          <p>Teste seus conhecimentos — cada acerto é um gol!</p>
+          <p>Treine sua mente — cada acerto é um gol!</p>
         </div>
 
-        <!-- Modo de quiz -->
-        <div class="quiz-modo-tabs">
-          <button class="quiz-modo-btn active" id="modo-normal-btn" onclick="setModoQuiz('normal')">⚡ Quiz Normal</button>
-          <button class="quiz-modo-btn" id="modo-prova-btn" onclick="setModoQuiz('prova')">📝 Revisão para Prova</button>
+        <!-- Seção A: Quiz do Dia -->
+        <div style="background:white;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+          <div style="font-size:15px;font-weight:700;margin-bottom:8px">📅 Quiz do Dia</div>
+          <p style="font-size:13px;color:#666;margin-bottom:12px">Selecione uma matéria no <strong>Painel do Dia</strong> para iniciar o quiz de uma aula específica.</p>
+          <button class="btn-primary" style="width:100%" onclick="showTab('hoje')">
+            📅 Ir para o Painel do Dia
+          </button>
         </div>
 
-        <div class="quiz-filters">
-          <div class="form-group">
-            <label>📚 Matéria</label>
-            <select id="quiz-materia">
-              <option value="">Todas as matérias</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>🏆 Trimestre</label>
-            <select id="quiz-trimestre">
-              <option value="">Todos os trimestres</option>
-              <option value="1º Trimestre">1º Trimestre</option>
-              <option value="2º Trimestre">2º Trimestre</option>
-              <option value="3º Trimestre">3º Trimestre</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>🎯 Quantidade de perguntas</label>
-            <select id="quiz-limite">
-              <option value="10" selected>10 perguntas</option>
-              <option value="20">20 perguntas</option>
-              <option value="30">30 perguntas</option>
-            </select>
-          </div>
-          <!-- Filtros de revisão para prova — só aparecem no modo Revisão -->
-          <div class="hidden" id="grupo-revisao-prova">
-            <div class="form-group">
-              <label>📅 Conteúdo estudado até qual data?</label>
-              <input type="date" id="quiz-ate-data">
-              <small style="color:var(--cinza3)">Deixe em branco para não filtrar por data</small>
-            </div>
-            <div class="form-group">
-              <label>📄 Páginas da apostila</label>
-              <div class="paginas-range">
-                <input type="number" id="quiz-pagina-ini" placeholder="De" min="1" max="999">
-                <span class="paginas-sep">até</span>
-                <input type="number" id="quiz-pagina-fim" placeholder="Até" min="1" max="999">
-              </div>
-              <small style="color:var(--cinza3)">Deixe em branco para todas as páginas</small>
-            </div>
+        <!-- Seção B: Revisão da Semana -->
+        <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+          <div style="font-size:15px;font-weight:700;margin-bottom:12px">🔄 Revisão da Semana</div>
+          <div id="revisao-semana-lista">
+            <div style="text-align:center;padding:16px;color:#999">Carregando...</div>
           </div>
         </div>
-
-        <button class="btn-primary btn-large" onclick="iniciarQuiz()">
-          🚀 Entrar em Campo!
-        </button>
 
         <div id="quiz-sem-perguntas" class="empty-state hidden">
           <div class="empty-icon">📭</div>
           <p>Nenhuma pergunta encontrada.<br>Registre algumas aulas primeiro!</p>
+        </div>
+      </div>
+
+      <!-- Tela de resumo antes do quiz -->
+      <div id="quiz-resumo-tela" class="hidden">
+        <div style="background:white;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+          <div id="quiz-resumo-materia-badge" style="display:inline-block;padding:4px 12px;border-radius:99px;background:#003DA5;color:white;font-size:12px;font-weight:700;margin-bottom:12px"></div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px" id="quiz-resumo-capitulo"></div>
+          <div id="quiz-resumo-texto" style="font-size:14px;line-height:1.6;color:#333;margin-bottom:16px"></div>
+          <button class="btn-primary btn-large" onclick="iniciarQuizDoDia()">
+            ⚡ Iniciar Quiz
+          </button>
         </div>
       </div>
 
@@ -335,6 +327,7 @@ Ex: Hoje estudamos fotossíntese. O prof explicou que as plantas usam luz solar 
           <div id="revisao-erradas"></div>
           <div class="resultado-msg" id="resultado-msg"></div>
           <button class="btn-primary" onclick="reiniciarQuiz()">🔄 Jogar de Novo</button>
+          <button class="btn-secondary" style="width:100%;margin-top:10px" onclick="voltarPainelDia()">📅 Voltar ao Painel do Dia</button>
         </div>
       </div>
 
@@ -418,6 +411,12 @@ Ex: Hoje estudamos fotossíntese. O prof explicou que as plantas usam luz solar 
         <p>Veja seu progresso em cada disciplina</p>
       </div>
       <div id="materias-detalhe" class="materias-detalhe"></div>
+
+      <!-- Mapa de dificuldades -->
+      <div style="margin-top:24px;padding:20px;background:white;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
+        <div style="font-weight:700;font-size:15px;margin-bottom:12px">⚠️ Onde você está errando mais</div>
+        <div id="dificuldades-lista"><div style="color:#999;font-size:13px;text-align:center;padding:12px">Carregando...</div></div>
+      </div>
 
       <div style="margin-top:32px;padding:20px;background:white;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.07)">
         <div style="font-weight:700;font-size:15px;margin-bottom:12px">🔔 Notificações</div>
