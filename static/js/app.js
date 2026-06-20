@@ -1018,8 +1018,8 @@ async function carregarDificuldades() {
       <div style="font-weight:700;font-size:13px;margin-bottom:6px">${emojiMateria(materia)} ${materia}</div>
       ${items.map(d => `
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid #f5f5f5;color:#444">
-          <span>${d.capitulo || 'Sem capítulo'}</span>
-          <span style="color:#E74C3C;font-weight:700">${d.total_erros} erro${d.total_erros !== 1 ? 's' : ''} / ${d.total_respondidas}</span>
+          <span>${d.tema || 'Sem tema'}</span>
+          <span style="color:#E74C3C;font-weight:700">${d.total_erros} erro${d.total_erros !== 1 ? 's' : ''}</span>
         </div>
       `).join('')}
     </div>

@@ -196,6 +196,7 @@ def init_db():
         ("streaks", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
         ("guias_prova", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
         ("push_subscriptions", "usuario", "TEXT NOT NULL DEFAULT 'tiago'"),
+        ("quiz_perguntas", "tema", "TEXT DEFAULT ''"),
     ]
     for table, col, tipo in migrations:
         try:
@@ -385,7 +386,8 @@ FORMATO DE RESPOSTA (JSON puro, sem markdown):
       "pergunta": "texto da pergunta",
       "alternativas": ["A) texto", "B) texto", "C) texto", "D) texto"],
       "correta": 0,
-      "explicacao": "explicação detalhada aqui"
+      "explicacao": "explicação detalhada aqui",
+      "tema": "tema específico em 2-4 palavras, ex: Descobrimento do Brasil"
     }}
   ]
 }}"""
@@ -478,11 +480,11 @@ async def criar_aula(aula: AulaCreate):
 
         for p in perguntas:
             c.execute("""
-                INSERT INTO quiz_perguntas (usuario, aula_id, materia, trimestre, pergunta, alternativas, correta, explicacao)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO quiz_perguntas (usuario, aula_id, materia, trimestre, pergunta, alternativas, correta, explicacao, tema)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (usuario, aula_id, aula.materia, aula.trimestre, p["pergunta"],
                   json.dumps(p["alternativas"], ensure_ascii=False),
-                  p["correta"], p.get("explicacao", "")))
+                  p["correta"], p.get("explicacao", ""), p.get("tema", "")))
 
         hoje = date.today().isoformat()
         existe_streak = c.execute("SELECT id FROM streaks WHERE usuario=? AND data=?", (usuario, hoje)).fetchone()
@@ -1061,25 +1063,21 @@ async def quiz_semana(usuario: str = "tiago"):
 
 @app.get("/api/dificuldades")
 async def mapa_dificuldades(usuario: str = "tiago"):
-    """Retorna mapa de dificuldades por matéria e capítulo (aulas com erros)."""
     conn = get_db()
     c = conn.cursor()
 
     rows = c.execute("""
         SELECT
-            a.materia,
-            a.capitulo,
-            a.id as aula_id,
-            a.data,
+            qp.materia,
+            qp.tema,
             COUNT(qr.id) as total_respondidas,
             SUM(CASE WHEN qr.correta=0 THEN 1 ELSE 0 END) as total_erros
         FROM quiz_resultados qr
         JOIN quiz_perguntas qp ON qr.pergunta_id = qp.id
-        JOIN aulas a ON qp.aula_id = a.id
-        WHERE qr.usuario=? AND a.usuario=?
-        GROUP BY a.id
+        WHERE qr.usuario=? AND qp.usuario=? AND qp.tema != '' AND qp.tema IS NOT NULL
+        GROUP BY qp.materia, qp.tema
         HAVING total_erros > 0
-        ORDER BY total_erros DESC
+        ORDER BY qp.materia, total_erros DESC
     """, (usuario, usuario)).fetchall()
 
     conn.close()
@@ -1087,9 +1085,7 @@ async def mapa_dificuldades(usuario: str = "tiago"):
         "dificuldades": [
             {
                 "materia": r["materia"],
-                "capitulo": r["capitulo"] or "",
-                "aula_id": r["aula_id"],
-                "data": r["data"],
+                "tema": r["tema"],
                 "total_erros": r["total_erros"],
                 "total_respondidas": r["total_respondidas"]
             }

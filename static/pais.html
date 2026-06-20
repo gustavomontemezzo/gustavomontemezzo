@@ -232,7 +232,7 @@ async function carregarPainel(usuario) {
               <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#003DA5">${mat}</div>
               ${items.map(d => `
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid #f0f0f0">
-                  <span style="color:#444">${d.capitulo || 'Sem capítulo'} <span style="color:#999;font-size:11px">(${d.data || ''})</span></span>
+                  <span style="color:#444">${d.tema || 'Sem tema'}</span>
                   <span style="color:#E74C3C;font-weight:700">${d.total_erros} erro${d.total_erros !== 1 ? 's' : ''} / ${d.total_respondidas} resp.</span>
                 </div>`).join('')}
             </div>`).join('');
