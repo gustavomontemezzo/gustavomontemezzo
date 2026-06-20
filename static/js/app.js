@@ -104,21 +104,30 @@ async function iniciarApp() {
 
 async function registrarServiceWorker() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-
   try {
     const reg = await navigator.serviceWorker.register('/static/sw.js');
     await navigator.serviceWorker.ready;
+    await ativarPush(reg);
+  } catch (e) {
+    console.error('PUSH ERRO SW:', e.name, e.message);
+  }
+}
 
-    // Pedir permissão só se ainda não foi decidido
+async function ativarPush(regParam) {
+  try {
+    let reg = regParam;
+    if (!reg) {
+      reg = await navigator.serviceWorker.ready;
+    }
     if (Notification.permission === 'default') {
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') return;
+      if (perm !== 'granted') return 'permissao_negada';
     }
-    if (Notification.permission !== 'granted') return;
+    if (Notification.permission !== 'granted') return 'permissao_bloqueada';
 
-    // Cancelar subscription antiga e criar nova (garante usuario correto)
     let sub = await reg.pushManager.getSubscription();
     if (sub) await sub.unsubscribe();
+
     const keyRes = await fetch('/api/push/vapid-public-key');
     const { publicKey } = await keyRes.json();
     sub = await reg.pushManager.subscribe({
@@ -126,9 +135,8 @@ async function registrarServiceWorker() {
       applicationServerKey: urlBase64ToUint8Array(publicKey)
     });
 
-    // Enviar subscription ao servidor
     const subJson = sub.toJSON();
-    await fetch('/api/push/subscribe', {
+    const res = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -138,10 +146,28 @@ async function registrarServiceWorker() {
         auth: subJson.keys.auth
       })
     });
+    return res.ok ? 'ok' : 'erro_servidor';
   } catch (e) {
-    console.error('PUSH ERRO:', e.name, e.message, e);
+    console.error('PUSH ERRO:', e.name, e.message);
+    return e.name + ': ' + e.message;
   }
 }
+
+// Chamado pelo botão de notificações nas configurações
+window.ativarNotificacoes = async function() {
+  const btn = document.getElementById('btn-notif');
+  if (btn) btn.textContent = 'Ativando...';
+  const resultado = await ativarPush();
+  if (btn) {
+    if (resultado === 'ok') {
+      btn.textContent = '✅ Notificações ativas!';
+      btn.style.background = '#27AE60';
+    } else {
+      btn.textContent = '❌ Erro: ' + resultado;
+      btn.style.background = '#E74C3C';
+    }
+  }
+};
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
