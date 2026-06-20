@@ -223,9 +223,9 @@ async function carregarMaterias() {
   const quizMateria = document.getElementById('quiz-materia');
   const provaMateria = document.getElementById('prova-materia');
   data.materias.forEach(m => {
-    selMateria.innerHTML += `<option value="${m}">${m}</option>`;
-    quizMateria.innerHTML += `<option value="${m}">${m}</option>`;
-    provaMateria.innerHTML += `<option value="${m}">${m}</option>`;
+    if (selMateria) selMateria.innerHTML += `<option value="${m}">${m}</option>`;
+    if (quizMateria) quizMateria.innerHTML += `<option value="${m}">${m}</option>`;
+    if (provaMateria) provaMateria.innerHTML += `<option value="${m}">${m}</option>`;
   });
 }
 
@@ -429,18 +429,18 @@ let modoQuiz = 'normal';
 
 function setModoQuiz(modo) {
   modoQuiz = modo;
-  document.getElementById('modo-normal-btn').classList.toggle('active', modo === 'normal');
-  document.getElementById('modo-prova-btn').classList.toggle('active', modo === 'prova');
-  document.getElementById('grupo-revisao-prova').classList.toggle('hidden', modo === 'normal');
+  document.getElementById('modo-normal-btn')?.classList.toggle('active', modo === 'normal');
+  document.getElementById('modo-prova-btn')?.classList.toggle('active', modo === 'prova');
+  document.getElementById('grupo-revisao-prova')?.classList.toggle('hidden', modo === 'normal');
 }
 
 async function iniciarQuiz() {
-  const materia  = document.getElementById('quiz-materia').value;
-  const trimestre = document.getElementById('quiz-trimestre').value;
-  const limite   = parseInt(document.getElementById('quiz-limite').value);
-  const ateData   = document.getElementById('quiz-ate-data').value;
-  const paginaIni = document.getElementById('quiz-pagina-ini').value;
-  const paginaFim = document.getElementById('quiz-pagina-fim').value;
+  const materia  = document.getElementById('quiz-materia')?.value || '';
+  const trimestre = document.getElementById('quiz-trimestre')?.value || '';
+  const limite   = parseInt(document.getElementById('quiz-limite')?.value || '10');
+  const ateData   = document.getElementById('quiz-ate-data')?.value || '';
+  const paginaIni = document.getElementById('quiz-pagina-ini')?.value || '';
+  const paginaFim = document.getElementById('quiz-pagina-fim')?.value || '';
 
   const params = new URLSearchParams({ limite });
   if (materia)   params.append('materia', materia);
