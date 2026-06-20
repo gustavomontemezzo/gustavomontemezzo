@@ -86,8 +86,7 @@ async function iniciarApp() {
 
   await Promise.all([
     carregarMaterias(),
-    carregarStats(),
-    carregarBernoulli()
+    carregarStats()
   ]);
 
   // Esconder loading
@@ -310,12 +309,6 @@ async function carregarStats() {
   }
 }
 
-async function carregarBernoulli() {
-  try {
-    const data = await get('/api/bernoulli/conteudo');
-    state.bernoulliConteudos = data.conteudos || [];
-  } catch(e) {}
-}
 
 // ─── Registrar Aula ───────────────────────────────────────────────────────────
 
@@ -408,29 +401,6 @@ function limparFotos() {
   document.getElementById('foto-preview').innerHTML = '';
 }
 
-// ─── Bernoulli auto-fill ──────────────────────────────────────────────────────
-
-document.getElementById('input-materia')?.addEventListener('change', function() {
-  const materia = this.value;
-  const conteudo = state.bernoulliConteudos.find(c => c.materia === materia);
-  const tip = document.getElementById('bernoulli-suggestion');
-  if (conteudo) {
-    document.getElementById('tip-capitulo').textContent = ` — ${conteudo.capitulo}`;
-    tip.classList.remove('hidden');
-  } else {
-    tip.classList.add('hidden');
-  }
-});
-
-async function usarBernoulli() {
-  const materia = document.getElementById('input-materia').value;
-  const data = await get(`/api/bernoulli/conteudo?materia=${encodeURIComponent(materia)}`);
-  if (data.conteudos && data.conteudos[0]) {
-    const c = data.conteudos[0];
-    document.getElementById('input-capitulo').value = c.capitulo;
-    document.getElementById('input-conteudo').value = c.conteudo;
-  }
-}
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
