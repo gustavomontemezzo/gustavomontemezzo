@@ -857,7 +857,6 @@ class PushSubscription(BaseModel):
 
 @app.post("/api/push/subscribe")
 async def subscribe_push(sub: PushSubscription):
-    print(f"PUSH SUBSCRIBE: usuario={sub.usuario} endpoint={sub.endpoint[:40]}")
     conn = get_db()
     conn.execute("""
         INSERT OR REPLACE INTO push_subscriptions (usuario, endpoint, p256dh, auth)
@@ -917,12 +916,6 @@ async def debug_colunas():
     conn.close()
     return tabelas
 
-@app.get("/api/debug/subscriptions")
-async def debug_subscriptions():
-    conn = get_db()
-    rows = conn.execute("SELECT usuario, endpoint FROM push_subscriptions").fetchall()
-    conn.close()
-    return {"total": len(rows), "subs": [{"usuario": r["usuario"], "endpoint": r["endpoint"][:60]+"..."} for r in rows]}
 
 if __name__ == "__main__":
     import uvicorn
