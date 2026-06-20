@@ -84,16 +84,18 @@ async function iniciarApp() {
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('input-data').value = hoje;
 
-  await Promise.all([
-    carregarMaterias(),
-    carregarStats()
-  ]);
+  try {
+    await Promise.all([
+      carregarMaterias(),
+      carregarStats()
+    ]);
+  } catch(e) {
+    console.error('Erro ao carregar dados:', e);
+  }
 
   // Esconder loading
-  setTimeout(() => {
-    document.getElementById('loading-screen').classList.add('hidden');
-    document.getElementById('app').classList.remove('hidden');
-  }, 1800);
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
 
   // Registrar Service Worker e ativar notificações
   registrarServiceWorker();
