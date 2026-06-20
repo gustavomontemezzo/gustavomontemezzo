@@ -916,6 +916,13 @@ async def debug_colunas():
     conn.close()
     return tabelas
 
+@app.get("/api/debug/subscriptions")
+async def debug_subscriptions():
+    conn = get_db()
+    rows = conn.execute("SELECT usuario, endpoint FROM push_subscriptions").fetchall()
+    conn.close()
+    return {"total": len(rows), "subs": [{"usuario": r["usuario"], "endpoint": r["endpoint"][:60]+"..."} for r in rows]}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
