@@ -117,10 +117,11 @@ function trocarAba(usuario) {
 async function carregarPainel(usuario) {
   document.getElementById('conteudo').innerHTML = '<div style="text-align:center;padding:60px 0"><div class="spinner"></div></div>';
 
-  const [stats, aulasRes, difsRes] = await Promise.all([
+  const [stats, aulasRes, difsRes, semanaRes] = await Promise.all([
     fetch(`/api/stats?usuario=${usuario}`).then(r => r.json()),
     fetch(`/api/aulas?usuario=${usuario}`).then(r => r.json()),
-    fetch(`/api/dificuldades?usuario=${usuario}`).then(r => r.json())
+    fetch(`/api/dificuldades?usuario=${usuario}`).then(r => r.json()),
+    fetch(`/api/quiz/semana?usuario=${usuario}`).then(r => r.json())
   ]);
 
   const nome = usuario === 'tiago' ? 'Tiago' : 'Henrique';
@@ -187,16 +188,6 @@ async function carregarPainel(usuario) {
           <span class="tag tag-trim">${a.trimestre}</span>
         </div>`).join('');
 
-  // Botões de notificação rápida
-  const notifBtns = [
-    ['📚 Novo material!', 'Professor adicionou material novo. Confira no sistema!', '📚 Novo material'],
-    ['📝 Trabalho passado', `Foi passado um trabalho novo, ${nome}. Registre no sistema!`, '📝 Trabalho novo'],
-    ['✏️ Exercícios novos!', 'Há exercícios novos para fazer. Bora praticar!', '✏️ Exercícios'],
-    ['⚠️ Prova chegando!', 'Não esqueça de usar a Véspera de Jogo para se preparar!', '⚠️ Prova'],
-  ].map(([titulo, corpo, label]) =>
-    `<button class="notif-btn" onclick="enviarNotif('${titulo}','${corpo}','${usuario}')">${label}</button>`
-  ).join('');
-
   document.getElementById('conteudo').innerHTML = `
     <!-- Stats -->
     <div class="stats-grid">
@@ -246,17 +237,20 @@ async function carregarPainel(usuario) {
       <div class="card"><div class="card-title">⚡ Desempenho no Quiz</div>${quizHTML}</div>
     </div>
 
-    <!-- Notificações -->
+    <!-- Revisão da Semana -->
     <div class="full-row">
       <div class="card">
-        <div class="card-title">📲 Enviar Notificação para ${nome}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">${notifBtns}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input id="notif-titulo" type="text" placeholder="Título" style="flex:1;min-width:120px;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
-          <input id="notif-corpo" type="text" placeholder="Texto da mensagem" style="flex:2;min-width:160px;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px">
-          <button onclick="enviarNotifCustom('${usuario}')" style="background:#003DA5;color:white;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:700;cursor:pointer">Enviar ▶</button>
-        </div>
-        <div id="notif-feedback" style="margin-top:8px;font-size:13px;color:#27AE60;display:none">✅ Notificação enviada!</div>
+        <div class="card-title">🔄 Revisão da Semana</div>
+        ${(() => {
+          const materias = semanaRes.materias || [];
+          const total = materias.reduce((s, m) => s + m.total, 0);
+          if (total === 0) return `<div class="alerta alerta-ok"><div class="alerta-icon">🏆</div><div class="alerta-texto"><div class="alerta-titulo">${nome} zerou todas as revisões!</div>Nenhuma questão pendente esta semana.</div></div>`;
+          return materias.map(m => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px">
+              <span style="font-weight:600">${m.materia}</span>
+              <span style="color:#E74C3C;font-weight:700">${m.total} questão${m.total !== 1 ? 'ões' : ''} pendente${m.total !== 1 ? 's' : ''}</span>
+            </div>`).join('');
+        })()}
       </div>
     </div>
 
@@ -281,29 +275,6 @@ function formatarData(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
-
-async function enviarNotif(titulo, corpo, usuario) {
-  await fetch('/api/push/enviar-usuario', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ titulo, corpo, usuario })
-  });
-  mostrarFeedback();
-}
-
-async function enviarNotifCustom(usuario) {
-  const titulo = document.getElementById('notif-titulo').value.trim();
-  const corpo  = document.getElementById('notif-corpo').value.trim();
-  if (!titulo || !corpo) return alert('Preencha título e texto.');
-  await enviarNotif(titulo, corpo, usuario);
-  document.getElementById('notif-titulo').value = '';
-  document.getElementById('notif-corpo').value  = '';
-}
-
-function mostrarFeedback() {
-  const el = document.getElementById('notif-feedback');
-  el.style.display = 'block';
-  setTimeout(() => el.style.display = 'none', 3000);
 }
 
 carregarPainel('tiago');
