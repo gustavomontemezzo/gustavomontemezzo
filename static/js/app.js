@@ -47,10 +47,6 @@ const LOADING_MSGS = [
 ];
 
 window.addEventListener('load', async () => {
-  // Listeners de foto da Véspera de Jogo (mais confiáveis que onchange inline)
-  document.getElementById('prova-foto-camera')?.addEventListener('change', function() { adicionarFotosProva(this); });
-  document.getElementById('prova-foto-galeria')?.addEventListener('change', function() { adicionarFotosProva(this); });
-
   if (!USUARIO) {
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('user-select-screen').classList.remove('hidden');
@@ -404,17 +400,14 @@ function adicionarFotos(input) {
 }
 
 function adicionarFotosProva(input) {
-  console.log('[prova] adicionarFotosProva chamada, files:', input.files?.length);
   const preview = document.getElementById('prova-foto-preview');
-  console.log('[prova] preview element:', preview);
-  if (!preview) { alert('Erro: elemento preview não encontrado'); return; }
+  if (!preview) return;
   if (input.files && input.files.length > 0) {
     Array.from(input.files).forEach(file => {
       fotosProva.push(file);
       const reader = new FileReader();
       const idx = fotosProva.length;
       reader.onload = e => {
-        console.log('[prova] adicionando img ao preview');
         preview.innerHTML += `<img src="${e.target.result}" alt="Foto ${idx}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
       };
       reader.readAsDataURL(file);
