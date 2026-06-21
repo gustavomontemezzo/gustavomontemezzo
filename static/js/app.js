@@ -1024,7 +1024,7 @@ function celebrarSemanaZerada() {
 
   // Mensagem personalizada
   const msg = isTiago
-    ? { titulo: '🏆 SEMANA ZERADA!', sub: 'Você revisou TUDO essa semana!', detalhe: 'Isso é coisa de campeão com TDAH dominado! 🔵⚫⚪🔥', xp: '+100 XP — Semana Perfeita!' }
+    ? { titulo: '🏆 SEMANA ZERADA!', sub: 'Você revisou TUDO essa semana!', detalhe: 'Isso é coisa de campeão! 🔵⚫⚪🔥', xp: '+100 XP — Semana Perfeita!' }
     : { titulo: '🏆 SEMANA ZERADA!', sub: 'Você revisou TUDO essa semana!', detalhe: 'Excelente disciplina, campeão! Continue assim! ⚽🔥', xp: '+100 XP — Semana Perfeita!' };
 
   // Modal de celebração
