@@ -47,6 +47,10 @@ const LOADING_MSGS = [
 ];
 
 window.addEventListener('load', async () => {
+  // Listeners de foto da Véspera de Jogo (mais confiáveis que onchange inline)
+  document.getElementById('prova-foto-camera')?.addEventListener('change', function() { adicionarFotosProva(this); });
+  document.getElementById('prova-foto-galeria')?.addEventListener('change', function() { adicionarFotosProva(this); });
+
   if (!USUARIO) {
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('user-select-screen').classList.remove('hidden');
