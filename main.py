@@ -738,13 +738,24 @@ class GuiaProvaCreate(BaseModel):
 
 def gerar_guia_prova(materia: str, trimestre: str, topicos: str,
                      pagina_ini: Optional[int], pagina_fim: Optional[int],
-                     conteudo_extra: str) -> str:
+                     conteudo_extra: str, fotos: list = None) -> str:
     if not ANTHROPIC_API_KEY:
         return "<p>API não configurada.</p>"
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     paginas_info = f"Páginas {pagina_ini} a {pagina_fim} da apostila." if pagina_ini and pagina_fim else ""
+
+    conteudo_msg = []
+    if fotos:
+        import base64
+        for fp in fotos[:5]:
+            if Path(fp).exists():
+                with open(fp, "rb") as f:
+                    img_data = base64.standard_b64encode(f.read()).decode("utf-8")
+                ext = Path(fp).suffix.lower()
+                media_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"
+                conteudo_msg.append({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": img_data}})
 
     prompt = f"""Você é um professor especialista em criar materiais de revisão para provas do Ensino Médio.
 Seu aluno é Tiago, 15 anos, 1º ano do Ensino Médio, Colégio Vicentino São José, Foz do Iguaçu - PR.
@@ -753,6 +764,7 @@ TRIMESTRE: {trimestre}
 TÓPICOS A ESTUDAR: {topicos}
 {paginas_info}
 {f"CONTEÚDO ADICIONAL: {conteudo_extra[:2000]}" if conteudo_extra else ""}
+{f"(Há {len(fotos)} foto(s) do caderno/apostila — use o conteúdo das imagens para enriquecer o guia.)" if fotos else ""}
 
 Crie um GUIA COMPLETO DE ESTUDO PARA PROVA em HTML. O guia deve ser rico, visual e direto ao ponto.
 
@@ -793,11 +805,12 @@ REGRAS:
 - Seja completo — este é o material principal de estudo do Tiago para a prova
 - Linguagem clara, direta, sem rodeios"""
 
+    conteudo_msg.append({"type": "text", "text": prompt})
     try:
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=8000,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": conteudo_msg}]
         )
         return message.content[0].text.strip()
     except Exception as e:
@@ -806,9 +819,19 @@ REGRAS:
 
 @app.post("/api/guia-prova")
 async def criar_guia_prova(dados: GuiaProvaCreate):
+    fotos_recentes = []
+    try:
+        agora = datetime.now().timestamp()
+        fotos_recentes = [
+            str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
+            if f.is_file() and (agora - f.stat().st_mtime) < 60
+            and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
+        ]
+    except Exception:
+        pass
     guia_html = gerar_guia_prova(
         dados.materia, dados.trimestre, dados.topicos,
-        dados.pagina_ini, dados.pagina_fim, dados.conteudo_extra or ""
+        dados.pagina_ini, dados.pagina_fim, dados.conteudo_extra or "", fotos_recentes
     )
     conn = get_db()
     c = conn.cursor()

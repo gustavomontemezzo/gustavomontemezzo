@@ -382,6 +382,7 @@ async function registrarAula(event, acao = 'proximo') {
 
 // Armazena todas as fotos acumuladas
 let fotosAcumuladas = [];
+let fotosProva = [];
 
 function adicionarFotos(input) {
   const preview = document.getElementById('foto-preview');
@@ -390,6 +391,21 @@ function adicionarFotos(input) {
       fotosAcumuladas.push(file);
       const reader = new FileReader();
       const idx = fotosAcumuladas.length;
+      reader.onload = e => {
+        preview.innerHTML += `<img src="${e.target.result}" alt="Foto ${idx}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+}
+
+function adicionarFotosProva(input) {
+  const preview = document.getElementById('prova-foto-preview');
+  if (input.files && input.files.length > 0) {
+    Array.from(input.files).forEach(file => {
+      fotosProva.push(file);
+      const reader = new FileReader();
+      const idx = fotosProva.length;
       reader.onload = e => {
         preview.innerHTML += `<img src="${e.target.result}" alt="Foto ${idx}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
       };
@@ -750,8 +766,15 @@ async function gerarGuiaProva(event) {
   };
 
   try {
+    for (const file of fotosProva) {
+      const formData = new FormData();
+      formData.append('file', file);
+      await fetch('/api/upload', { method: 'POST', body: formData });
+    }
     const result = await post('/api/guia-prova', dados);
     mostrarGuia(result.guia_html, materia, trimestre, pIni, pFim);
+    fotosProva = [];
+    document.getElementById('prova-foto-preview').innerHTML = '';
   } catch(e) {
     alert('Erro ao gerar guia. Tente novamente.');
   } finally {
