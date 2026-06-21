@@ -399,7 +399,11 @@ function adicionarFotos(input) {
   }
 }
 
+let _provaCameraProcessando = false;
 function adicionarFotosProva(input) {
+  if (_provaCameraProcessando) return;
+  _provaCameraProcessando = true;
+  setTimeout(() => { _provaCameraProcessando = false; }, 500);
   const preview = document.getElementById('prova-foto-preview');
   if (!preview) return;
   if (input.files && input.files.length > 0) {
