@@ -385,38 +385,33 @@ let fotosAcumuladas = [];
 let fotosProva = [];
 
 function adicionarFotos(input) {
-  const preview = document.getElementById('foto-preview');
-  if (input.files && input.files.length > 0) {
-    Array.from(input.files).forEach(file => {
-      fotosAcumuladas.push(file);
-      const reader = new FileReader();
-      const idx = fotosAcumuladas.length;
-      reader.onload = e => {
-        preview.innerHTML += `<img src="${e.target.result}" alt="Foto ${idx}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+  if (!input.files || input.files.length === 0) return;
+  Array.from(input.files).forEach(file => {
+    fotosAcumuladas.push(file);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('foto-preview');
+      if (preview) {
+        preview.innerHTML += `<img src="${e.target.result}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
-let _provaCameraProcessando = false;
 function adicionarFotosProva(input) {
-  if (_provaCameraProcessando) return;
-  _provaCameraProcessando = true;
-  setTimeout(() => { _provaCameraProcessando = false; }, 500);
-  const preview = document.getElementById('prova-foto-preview');
-  if (!preview) return;
-  if (input.files && input.files.length > 0) {
-    Array.from(input.files).forEach(file => {
-      fotosProva.push(file);
-      const reader = new FileReader();
-      const idx = fotosProva.length;
-      reader.onload = e => {
-        preview.innerHTML += `<img src="${e.target.result}" alt="Foto ${idx}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
-      };
-      reader.readAsDataURL(file);
-    });
-  }
+  if (!input.files || input.files.length === 0) return;
+  Array.from(input.files).forEach(file => {
+    fotosProva.push(file);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('prova-foto-preview');
+      if (preview) {
+        preview.innerHTML += `<img src="${e.target.result}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function limparFotos() {
