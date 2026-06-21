@@ -983,7 +983,8 @@ async function carregarRevisaoSemana() {
   const materias = data.materias || [];
 
   if (materias.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:12px;color:#27AE60;font-weight:700">✅ Nenhuma revisão pendente esta semana!</div>';
+    celebrarSemanaZerada();
+    el.innerHTML = '';
     return;
   }
 
@@ -1013,6 +1014,56 @@ function iniciarRevisaoMateria(perguntas) {
   document.getElementById('quiz-resultado').classList.add('hidden');
   document.getElementById('quiz-game').classList.remove('hidden');
   renderPergunta();
+}
+
+// ─── Celebração Semana Zerada ────────────────────────────────────────────────
+
+function celebrarSemanaZerada() {
+  const nome = USUARIO.charAt(0).toUpperCase() + USUARIO.slice(1);
+  const isTiago = USUARIO === 'tiago';
+
+  // Mensagem personalizada
+  const msg = isTiago
+    ? { titulo: '🏆 SEMANA ZERADA!', sub: 'Você revisou TUDO essa semana!', detalhe: 'Isso é coisa de campeão com TDAH dominado! 🔵⚫⚪🔥', xp: '+100 XP — Semana Perfeita!' }
+    : { titulo: '🏆 SEMANA ZERADA!', sub: 'Você revisou TUDO essa semana!', detalhe: 'Excelente disciplina, campeão! Continue assim! ⚽🔥', xp: '+100 XP — Semana Perfeita!' };
+
+  // Modal de celebração
+  const overlay = document.createElement('div');
+  overlay.id = 'celebracao-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s ease';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:24px;padding:36px 28px;max-width:340px;width:90%;text-align:center;position:relative;overflow:hidden">
+      <div id="confete-container" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+      <div style="font-size:64px;margin-bottom:8px;animation:bounce 0.6s ease infinite alternate">🏆</div>
+      <div style="font-size:22px;font-weight:900;color:#003DA5;margin-bottom:6px">${msg.titulo}</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px">${nome}, ${msg.sub}</div>
+      <div style="font-size:13px;color:#555;margin-bottom:20px">${msg.detalhe}</div>
+      <div style="background:linear-gradient(135deg,#F5A623,#FF6B35);color:white;border-radius:12px;padding:12px;font-size:15px;font-weight:800;margin-bottom:20px;animation:pulse 1s ease infinite">
+        ${msg.xp}
+      </div>
+      <button onclick="document.getElementById('celebracao-overlay').remove()" style="background:#003DA5;color:white;border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:700;cursor:pointer;width:100%">
+        ⚽ Continuar jogando!
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Confete
+  const container = document.getElementById('confete-container');
+  const cores = ['#003DA5','#F5A623','#27AE60','#E74C3C','#9B59B6','#3498DB'];
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement('div');
+    const cor = cores[Math.floor(Math.random() * cores.length)];
+    const left = Math.random() * 100;
+    const delay = Math.random() * 2;
+    const dur = 2 + Math.random() * 2;
+    const size = 6 + Math.random() * 8;
+    c.style.cssText = `position:absolute;width:${size}px;height:${size}px;background:${cor};border-radius:${Math.random() > 0.5 ? '50%' : '2px'};left:${left}%;top:-10px;animation:cair ${dur}s ${delay}s ease-in forwards`;
+    container.appendChild(c);
+  }
+
+  // Fechar ao clicar fora
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 }
 
 // ─── Mapa de Dificuldades (aluno) ────────────────────────────────────────────
