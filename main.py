@@ -451,6 +451,26 @@ FORMATO DE RESPOSTA (JSON puro, sem markdown):
         return {"resumo": f"Resumo de {materia}: {conteudo[:300]}", "perguntas": [], "fotos_problemas": []}
 
 
+def embaralhar_alternativas(perguntas: list) -> list:
+    """Embaralha a posição das alternativas aleatoriamente, atualizando o índice correta."""
+    import random
+    for p in perguntas:
+        alts = p.get("alternativas", [])
+        correta_idx = p.get("correta", 0)
+        if len(alts) != 4 or not (0 <= correta_idx <= 3):
+            continue
+        resposta_correta = alts[correta_idx]
+        # Remove prefixos A) B) C) D) para embaralhar só o conteúdo
+        textos = [a[3:] if len(a) > 3 and a[1:3] == ') ' else a for a in alts]
+        texto_correto = textos[correta_idx]
+        random.shuffle(textos)
+        novo_idx = textos.index(texto_correto)
+        prefixos = ["A) ", "B) ", "C) ", "D) "]
+        p["alternativas"] = [prefixos[i] + textos[i] for i in range(4)]
+        p["correta"] = novo_idx
+    return perguntas
+
+
 def normalizar_tamanho_alternativas(perguntas: list) -> list:
     """
     Detecta alternativas corretas sistematicamente mais longas que as incorretas
@@ -510,7 +530,7 @@ async def criar_aula(aula: AulaCreate):
 
         ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
         resumo = ia_result.get("resumo", "")
-        perguntas = normalizar_tamanho_alternativas(ia_result.get("perguntas", []))
+        perguntas = embaralhar_alternativas(normalizar_tamanho_alternativas(ia_result.get("perguntas", [])))
 
         c.execute("""
             INSERT INTO aulas (usuario, data, materia, trimestre, capitulo, pagina_ini, pagina_fim, conteudo, fonte, resumo)

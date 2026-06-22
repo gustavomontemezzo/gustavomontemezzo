@@ -1044,6 +1044,7 @@ async function carregarPainelDia() {
         <div class="empty-icon">📋</div>
         <p>Nenhuma aula registrada hoje.<br>Vá para <strong>Treino</strong> e registre!</p>
         <button class="btn-primary" style="margin-top:16px" onclick="showTab('registrar')">📝 Ir para Treino</button>
+        <p style="font-size:11px;color:#bbb;margin-top:12px">data consultada: ${hoje} | erro: ${data.detail || 'nenhum'}</p>
       </div>`;
     return;
   }
