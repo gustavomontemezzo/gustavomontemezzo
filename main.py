@@ -387,9 +387,9 @@ TAREFA:
 2. Crie EXATAMENTE 10 PERGUNTAS de múltipla escolha de nível DIFÍCIL sobre o conteúdo.
    - Nível: difícil — exija raciocínio, análise e aplicação, não apenas memorização.
    - Cada pergunta deve ter 4 alternativas (A, B, C, D)
-   - OBRIGATÓRIO: distribua as respostas corretas aleatoriamente entre A, B, C e D. Não concentre respostas em nenhuma letra específica. Use todas as letras de forma equilibrada ao longo das 10 perguntas.
-   - OBRIGATÓRIO: todas as alternativas devem ter tamanho similar. A resposta correta NÃO pode ser sistematicamente mais longa ou detalhada que as incorretas.
-   - As alternativas incorretas devem ser plausíveis e bem elaboradas — não óbvias.
+   - DISTRIBUIÇÃO DE RESPOSTAS CORRETAS: use A, B, C e D de forma equilibrada (aproximadamente 2-3 vezes cada ao longo das 10 perguntas). Nunca concentre em uma letra só.
+   - REGRA CRÍTICA DE TAMANHO: conte as letras de cada alternativa. A alternativa correta DEVE ter comprimento similar às incorretas (diferença máxima de 20%). Se a correta ficou maior, encurte-a ou expanda as incorretas até ficarem no mesmo nível. O aluno NÃO pode adivinhar a resposta pelo tamanho do texto.
+   - Alternativas incorretas: plausíveis, tecnicamente elaboradas, com vocabulário do conteúdo — não óbvias.
    - Forneça uma explicação detalhada da resposta correta.
    - Varie entre perguntas conceituais, de aplicação, de análise e de raciocínio crítico.
 
@@ -451,6 +451,30 @@ FORMATO DE RESPOSTA (JSON puro, sem markdown):
         return {"resumo": f"Resumo de {materia}: {conteudo[:300]}", "perguntas": [], "fotos_problemas": []}
 
 
+def normalizar_tamanho_alternativas(perguntas: list) -> list:
+    """
+    Detecta alternativas corretas sistematicamente mais longas que as incorretas
+    e trunca para não vazar a resposta pelo comprimento do texto.
+    """
+    for p in perguntas:
+        alts = p.get("alternativas", [])
+        correta_idx = p.get("correta", 0)
+        if len(alts) != 4 or not (0 <= correta_idx <= 3):
+            continue
+        # Comprimento sem o prefixo "A) "
+        textos = [a[3:] if len(a) > 3 and a[1:3] == ') ' else a for a in alts]
+        tam_incorretas = [len(textos[i]) for i in range(4) if i != correta_idx]
+        media_incorretas = sum(tam_incorretas) / len(tam_incorretas)
+        tam_correta = len(textos[correta_idx])
+        # Se correta tem mais de 40% a mais que a média das incorretas → truncar
+        if media_incorretas > 0 and tam_correta > media_incorretas * 1.4:
+            alvo = int(media_incorretas * 1.1)
+            texto_truncado = textos[correta_idx][:alvo].rsplit(' ', 1)[0]
+            prefixo = alts[correta_idx][:3] if len(alts[correta_idx]) > 3 and alts[correta_idx][1:3] == ') ' else ''
+            p["alternativas"][correta_idx] = prefixo + texto_truncado
+    return perguntas
+
+
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -486,7 +510,7 @@ async def criar_aula(aula: AulaCreate):
 
         ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
         resumo = ia_result.get("resumo", "")
-        perguntas = ia_result.get("perguntas", [])
+        perguntas = normalizar_tamanho_alternativas(ia_result.get("perguntas", []))
 
         c.execute("""
             INSERT INTO aulas (usuario, data, materia, trimestre, capitulo, pagina_ini, pagina_fim, conteudo, fonte, resumo)
