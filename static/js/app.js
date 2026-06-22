@@ -384,8 +384,8 @@ async function registrarAula(event, acao = 'proximo') {
 // ─── Upload Preview ───────────────────────────────────────────────────────────
 
 const MAX_FOTOS = 15;
-const MAX_IMG_PX = 1024;
-const MAX_IMG_KB = 150;
+const MAX_IMG_PX = 1600;
+const MAX_IMG_KB = 300;
 
 let fotosAcumuladas = [];
 let fotosProva = [];
@@ -404,7 +404,7 @@ function comprimirImagem(file) {
         }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', 0.75);
+        canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', 0.85);
       };
       img.src = e.target.result;
     };
