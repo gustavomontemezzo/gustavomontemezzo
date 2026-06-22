@@ -340,12 +340,13 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
     # Adicionar fotos se existirem
     if fotos:
         import base64
-        for fp in fotos[:5]:  # máximo 5 fotos
+        media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif"}
+        for fp in fotos[:5]:
             if Path(fp).exists():
                 with open(fp, "rb") as f:
                     img_data = base64.standard_b64encode(f.read()).decode("utf-8")
                 ext = Path(fp).suffix.lower()
-                media_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"
+                media_type = media_types.get(ext, "image/jpeg")
                 conteudo_msg.append({
                     "type": "image",
                     "source": {"type": "base64", "media_type": media_type, "data": img_data}
@@ -359,9 +360,9 @@ CAPÍTULO/TÓPICO: {capitulo}
 TRIMESTRE: {trimestre}
 CONTEÚDO ESTUDADO:
 ---
-{conteudo[:3000]}
+{conteudo[:3000] if conteudo and conteudo.strip() else "(O aluno não digitou texto — use EXCLUSIVAMENTE o conteúdo das fotos do caderno/apostila acima como fonte para o resumo e o quiz.)"}
 ---
-{f"(Há {len(fotos)} foto(s) do caderno/apostila acima — leia o conteúdo de todas as imagens e use-as para enriquecer o resumo e o quiz.)" if fotos else ""}
+{f"IMPORTANTE: Há {len(fotos)} foto(s) do caderno/apostila acima. Leia todo o conteúdo visível nas imagens e use-o como base principal." if fotos else ""}
 
 TAREFA:
 1. Crie um RESUMO CRIATIVO (mínimo 400 palavras, máximo 600 palavras) do conteúdo.
