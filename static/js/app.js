@@ -357,22 +357,27 @@ async function registrarAula(event, acao = 'proximo') {
     document.getElementById('form-aula').reset();
     document.getElementById('input-data').value = dataAtual;
     document.getElementById('input-trimestre').value = trimestreAtual;
-    limparFotos();
 
     // Recarregar stats
     await carregarStats();
 
     if (acao === 'finalizar') {
-      // Ir para o painel do dia
+      limparFotos();
       showTab('hoje');
     } else {
-      // Mostrar modal de sucesso e permanecer no Treino
+      // Mostrar modal de sucesso — limpar fotos só ao fechar
       document.getElementById('modal-resumo').innerHTML = formatarTexto(result.resumo);
+      const aviso = document.getElementById('modal-fotos-aviso');
+      const avisoTexto = document.getElementById('modal-fotos-aviso-texto');
+      if (result.fotos_problemas && result.fotos_problemas.length > 0) {
+        const nums = result.fotos_problemas.join(', ');
+        avisoTexto.textContent = `Foto${result.fotos_problemas.length > 1 ? 's' : ''} ${nums} não ${result.fotos_problemas.length > 1 ? 'puderam ser lidas' : 'pôde ser lida'} — desfocada, escura ou cortada.`;
+        aviso.classList.remove('hidden');
+      } else {
+        aviso.classList.add('hidden');
+      }
       document.getElementById('modal-sucesso').classList.remove('hidden');
       document.getElementById('modal-overlay').classList.remove('hidden');
-      if (result.fotos_problemas && result.fotos_problemas.length > 0) {
-        result.fotos_problemas.forEach(idx => marcarFotoIlegivel(idx, 'foto-preview'));
-      }
     }
 
   } catch(e) {
@@ -406,8 +411,10 @@ function comprimirImagem(file) {
           else { w = Math.round(w * MAX_IMG_PX / h); h = MAX_IMG_PX; }
         }
         canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', 0.85);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const qualidade = analisarQualidade(ctx, w, h);
+        canvas.toBlob(blob => resolve({ blob: blob || file, qualidade }), 'image/jpeg', 0.85);
       };
       img.src = e.target.result;
     };
@@ -415,20 +422,49 @@ function comprimirImagem(file) {
   });
 }
 
-function criarCardFoto(src, idx, array, previewId) {
+function analisarQualidade(ctx, w, h) {
+  const step = Math.max(4, Math.floor(Math.min(w, h) / 60));
+  const data = ctx.getImageData(0, 0, w, h).data;
+  let soma = 0, count = 0;
+  const brilhos = [];
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      const i = (y * w + x) * 4;
+      const b = data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114;
+      brilhos.push(b);
+      soma += b;
+      count++;
+    }
+  }
+  const media = soma / count;
+  const desvio = Math.sqrt(brilhos.reduce((acc, b) => acc + (b - media) ** 2, 0) / count);
+  if (media < 45) return 'escura';
+  if (desvio < 18) return 'desfocada';
+  return 'ok';
+}
+
+function criarCardFoto(src, idx, array, previewId, qualidade = 'ok') {
   const preview = document.getElementById(previewId);
   if (!preview) return;
   const id = `foto-card-${previewId}-${idx}`;
   const inputId = `foto-subst-${previewId}-${idx}`;
+
+  const bordaCor = qualidade === 'ok' ? '#27AE60' : '#E67E22';
+  const labelBg  = qualidade === 'ok' ? '#e8f8f0' : '#fff3e0';
+  const labelCor = qualidade === 'ok' ? '#27AE60' : '#E67E22';
+  const labelTxt = qualidade === 'escura'    ? '⚠️ Escura — Tirar nova'
+                 : qualidade === 'desfocada' ? '⚠️ Desfocada — Tirar nova'
+                 : '✅ Foto ok';
+
   const card = document.createElement('div');
   card.id = id;
   card.style.cssText = 'position:relative;display:inline-flex;flex-direction:column;align-items:center;margin:4px;';
   card.innerHTML = `
     <div style="position:relative">
-      <img src="${src}" data-idx="${idx}" style="width:90px;height:90px;border-radius:8px;object-fit:cover;border:2px solid #ddd;">
+      <img src="${src}" data-idx="${idx}" style="width:90px;height:90px;border-radius:8px;object-fit:cover;border:2px solid ${bordaCor};">
       <span style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;border-radius:4px;padding:1px 5px">${idx}</span>
     </div>
-    <label for="${inputId}" style="margin-top:4px;font-size:10px;font-weight:700;color:#003DA5;cursor:pointer;background:#e8f0fe;border-radius:6px;padding:3px 8px;">🔄 Substituir</label>
+    <label for="${inputId}" style="margin-top:4px;font-size:10px;font-weight:700;color:${labelCor};cursor:pointer;background:${labelBg};border-radius:6px;padding:3px 8px;text-align:center;max-width:90px">${labelTxt}</label>
     <input type="file" id="${inputId}" accept="image/*" capture="environment" style="display:none" onchange="substituirFoto(this,${idx},'${array}','${previewId}')">
   `;
   preview.appendChild(card);
@@ -436,20 +472,25 @@ function criarCardFoto(src, idx, array, previewId) {
 
 function substituirFoto(input, idx, arrayName, previewId) {
   if (!input.files || input.files.length === 0) return;
-  comprimirImagem(input.files[0]).then(comprimida => {
+  comprimirImagem(input.files[0]).then(({ blob, qualidade }) => {
     const arr = arrayName === 'fotosAcumuladas' ? fotosAcumuladas : fotosProva;
-    arr[idx - 1] = comprimida;
+    arr[idx - 1] = blob;
     const reader = new FileReader();
     reader.onload = e => {
       const card = document.getElementById(`foto-card-${previewId}-${idx}`);
-      if (card) {
-        const img = card.querySelector('img');
+      if (!card) return;
+      const img = card.querySelector('img');
+      const label = card.querySelector('label');
+      if (qualidade === 'ok') {
         if (img) { img.src = e.target.result; img.style.border = '2px solid #27AE60'; }
-        const label = card.querySelector('label');
-        if (label) { label.style.background = '#e8f8f0'; label.style.color = '#27AE60'; label.textContent = '✅ Substituída'; }
+        if (label) { label.style.background = '#e8f8f0'; label.style.color = '#27AE60'; label.textContent = '✅ Foto ok'; }
+      } else {
+        const txt = qualidade === 'escura' ? '⚠️ Ainda escura — Tirar nova' : '⚠️ Ainda desfocada — Tirar nova';
+        if (img) { img.src = e.target.result; img.style.border = '2px solid #E67E22'; }
+        if (label) { label.style.background = '#fff3e0'; label.style.color = '#E67E22'; label.textContent = txt; }
       }
     };
-    reader.readAsDataURL(comprimida);
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -466,12 +507,12 @@ function adicionarFotos(input) {
   if (!input.files || input.files.length === 0) return;
   Array.from(input.files).forEach(async file => {
     if (fotosAcumuladas.length >= MAX_FOTOS) return;
-    const comprimida = await comprimirImagem(file);
-    fotosAcumuladas.push(comprimida);
+    const { blob, qualidade } = await comprimirImagem(file);
+    fotosAcumuladas.push(blob);
     const idx = fotosAcumuladas.length;
     const reader = new FileReader();
-    reader.onload = e => criarCardFoto(e.target.result, idx, 'fotosAcumuladas', 'foto-preview');
-    reader.readAsDataURL(comprimida);
+    reader.onload = e => criarCardFoto(e.target.result, idx, 'fotosAcumuladas', 'foto-preview', qualidade);
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -479,12 +520,12 @@ function adicionarFotosProva(input) {
   if (!input.files || input.files.length === 0) return;
   Array.from(input.files).forEach(async file => {
     if (fotosProva.length >= MAX_FOTOS) return;
-    const comprimida = await comprimirImagem(file);
-    fotosProva.push(comprimida);
+    const { blob, qualidade } = await comprimirImagem(file);
+    fotosProva.push(blob);
     const idx = fotosProva.length;
     const reader = new FileReader();
-    reader.onload = e => criarCardFoto(e.target.result, idx, 'fotosProva', 'prova-foto-preview');
-    reader.readAsDataURL(comprimida);
+    reader.onload = e => criarCardFoto(e.target.result, idx, 'fotosProva', 'prova-foto-preview', qualidade);
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -500,6 +541,7 @@ function limparFotos() {
 function fecharModal() {
   document.getElementById('modal-sucesso').classList.add('hidden');
   document.getElementById('modal-overlay').classList.add('hidden');
+  limparFotos();
 }
 
 async function irParaQuiz() {

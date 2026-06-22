@@ -7,7 +7,7 @@
 <meta name="description" content="Sistema de Estudos do Tiago">
 <title>⚽ Arena do Conhecimento — Tiago</title>
 <link rel="manifest" href="/static/manifest.json">
-<link rel="stylesheet" href="/static/css/style.css?v=20260622c">
+<link rel="stylesheet" href="/static/css/style.css?v=20260622d">
 </head>
 <body>
 
@@ -466,6 +466,13 @@
     <h2>Treino registrado!</h2>
     <p class="modal-sub">Leia o resumo antes de fazer o quiz!</p>
 
+    <!-- Aviso de fotos ilegíveis -->
+    <div id="modal-fotos-aviso" class="hidden" style="background:#fff3cd;border:2px solid #F5A623;border-radius:12px;padding:12px 16px;margin-bottom:12px;text-align:left">
+      <div style="font-weight:800;color:#b8860b;margin-bottom:4px">📸 Atenção — foto(s) ilegível(is)</div>
+      <div id="modal-fotos-aviso-texto" style="font-size:13px;color:#7a5c00;line-height:1.5"></div>
+      <div style="font-size:12px;color:#7a5c00;margin-top:6px">Registre a aula novamente com fotos melhores para um resumo mais preciso.</div>
+    </div>
+
     <!-- Resumo gerado pela IA -->
     <div class="resumo-card" id="modal-resumo-card">
       <div class="resumo-header">📖 Resumo da Aula</div>
@@ -490,6 +497,6 @@
   <span class="clube-tag liverpool">🔴 Liverpool</span>
 </footer>
 
-<script src="/static/js/app.js?v=20260622c"></script>
+<script src="/static/js/app.js?v=20260622d"></script>
 </body>
 </html>
