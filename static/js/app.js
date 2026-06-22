@@ -80,8 +80,9 @@ async function iniciarApp() {
   const headerName = document.getElementById('header-name');
   if (headerName) headerName.textContent = nomeDisplay;
 
-  // Definir data de hoje nos inputs
-  const hoje = new Date().toISOString().split('T')[0];
+  // Definir data de hoje nos inputs (data LOCAL do dispositivo, não UTC)
+  const _h = new Date();
+  const hoje = `${_h.getFullYear()}-${String(_h.getMonth()+1).padStart(2,'0')}-${String(_h.getDate()).padStart(2,'0')}`;
   document.getElementById('input-data').value = hoje;
 
   try {
@@ -1026,9 +1027,10 @@ function emojiMateria(materia) {
 }
 
 async function carregarPainelDia() {
-  const hoje = new Date().toISOString().split('T')[0];
+  const _hj = new Date();
+  const hoje = `${_hj.getFullYear()}-${String(_hj.getMonth()+1).padStart(2,'0')}-${String(_hj.getDate()).padStart(2,'0')}`;
   document.getElementById('hoje-data-label').textContent =
-    'Aulas de ' + new Date(hoje + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+    'Aulas de ' + _hj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
 
   const data = await get('/api/aulas/dia');
   const aulas = data.aulas || [];
