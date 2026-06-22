@@ -29,6 +29,9 @@ import aiofiles
 
 BASE_DIR = Path(__file__).parent
 
+# Cache temporário de fotos por IP (TTL 120s)
+_fotos_por_ip: dict = {}
+
 # Suporte a volume persistente no Railway (/data) ou local
 DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR / "data")))
 DB_PATH  = DATA_DIR / "sistema.db"
@@ -451,18 +454,23 @@ async def listar_materias(usuario: str = "tiago"):
 # --- Aulas ---
 
 @app.post("/api/aulas")
-async def criar_aula(aula: AulaCreate):
-    import traceback
+async def criar_aula(request: Request, aula: AulaCreate):
+    import traceback, time
     usuario = aula.usuario or "tiago"
     conn = get_db()
     c = conn.cursor()
 
     try:
-        # Usar fotos enviadas explicitamente pelo cliente
+        # Buscar fotos pelo IP (enviadas nos últimos 120s) ou pelo campo fotos
+        ip = request.client.host
+        agora = time.time()
         fotos_recentes = []
         if aula.fotos:
             fotos_recentes = [str(UPLOADS / f) for f in aula.fotos if (UPLOADS / f).exists()]
-        print(f"[aula] fotos recebidas: {aula.fotos} | encontradas: {fotos_recentes} | conteudo len: {len(aula.conteudo)}")
+        elif ip in _fotos_por_ip:
+            fotos_recentes = [str(UPLOADS / n) for n, t in _fotos_por_ip[ip] if agora - t < 120 and (UPLOADS / n).exists()]
+            _fotos_por_ip[ip] = []  # limpar após uso
+        print(f"[aula] IP={ip} fotos_campo={aula.fotos} fotos_ip={fotos_recentes} conteudo={len(aula.conteudo)}")
 
         ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
         resumo = ia_result.get("resumo", "")
@@ -705,13 +713,23 @@ async def estatisticas(usuario: str = "tiago"):
 # --- Upload de imagens (caderno/apostila) ---
 
 @app.post("/api/upload")
-async def upload_imagem(file: UploadFile = File(...)):
+async def upload_imagem(request: Request, file: UploadFile = File(...)):
+    import time
     ext = Path(file.filename).suffix
-    nome = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
+    nome = f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}{ext}"
     destino = UPLOADS / nome
     async with aiofiles.open(destino, "wb") as f:
         content = await file.read()
         await f.write(content)
+    # Associar foto ao IP do cliente com TTL de 120s
+    ip = request.client.host
+    agora = time.time()
+    if ip not in _fotos_por_ip:
+        _fotos_por_ip[ip] = []
+    # Limpar entradas antigas
+    _fotos_por_ip[ip] = [(n, t) for n, t in _fotos_por_ip[ip] if agora - t < 120]
+    _fotos_por_ip[ip].append((nome, agora))
+    print(f"[upload] IP={ip} arquivo={nome}")
     return {"filename": nome, "url": f"/uploads/{nome}"}
 
 @app.get("/uploads/{filename}")
