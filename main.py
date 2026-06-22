@@ -300,7 +300,7 @@ class AulaCreate(BaseModel):
     capitulo: Optional[str] = ""
     pagina_ini: Optional[int] = None
     pagina_fim: Optional[int] = None
-    conteudo: str
+    conteudo: str = ""
     fonte: str = "manual"
     fotos: Optional[list] = None
 
@@ -462,6 +462,7 @@ async def criar_aula(aula: AulaCreate):
         fotos_recentes = []
         if aula.fotos:
             fotos_recentes = [str(UPLOADS / f) for f in aula.fotos if (UPLOADS / f).exists()]
+        print(f"[aula] fotos recebidas: {aula.fotos} | encontradas: {fotos_recentes} | conteudo len: {len(aula.conteudo)}")
 
         ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
         resumo = ia_result.get("resumo", "")
