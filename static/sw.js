@@ -1,6 +1,6 @@
 /* Service Worker — Sistema de Estudos Tiago */
 
-const CACHE_NAME = 'tiago-v12';
+const CACHE_NAME = 'tiago-v13';
 
 self.addEventListener('install', e => {
   self.skipWaiting();

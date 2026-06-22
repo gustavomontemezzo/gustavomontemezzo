@@ -1105,8 +1105,13 @@ async def quiz_semana(usuario: str = "tiago"):
             por_materia[m] = []
         por_materia[m].append(p)
 
+    total_respondidas = c.execute(
+        "SELECT COUNT(*) FROM quiz_resultados WHERE usuario=?", (usuario,)
+    ).fetchone()[0]
+
     conn.close()
     return {
+        "total_respondidas": total_respondidas,
         "materias": [
             {"materia": m, "total": len(ps), "perguntas": ps}
             for m, ps in por_materia.items()

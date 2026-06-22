@@ -1147,10 +1147,16 @@ async function carregarRevisaoSemana() {
 
   const data = await get('/api/quiz/semana');
   const materias = data.materias || [];
+  const totalRespondidas = data.total_respondidas || 0;
 
   if (materias.length === 0) {
-    celebrarSemanaZerada();
-    el.innerHTML = '';
+    if (totalRespondidas > 0) {
+      // Só celebra se o aluno já tinha respondido perguntas e zerou as pendências
+      celebrarSemanaZerada();
+    } else {
+      // Sem histórico — mensagem neutra
+      el.innerHTML = '<div style="text-align:center;padding:16px;color:#999;font-size:13px">Faça quizzes para ver suas pendências de revisão aqui.</div>';
+    }
     return;
   }
 
