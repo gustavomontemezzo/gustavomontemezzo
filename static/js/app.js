@@ -336,16 +336,15 @@ async function registrarAula(event, acao = 'proximo') {
   };
 
   try {
-    // Enviar fotos e coletar filenames para associar explicitamente à aula
-    const filenames = [];
+    // Token único para associar fotos a esta aula no servidor
+    const token = Date.now().toString(36) + Math.random().toString(36).slice(2);
     for (const file of fotosAcumuladas) {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const json = await res.json();
-      if (json.filename) filenames.push(json.filename);
+      formData.append('token', token);
+      await fetch('/api/upload', { method: 'POST', body: formData });
     }
-    if (filenames.length > 0) data.fotos = filenames;
+    if (fotosAcumuladas.length > 0) data.foto_token = token;
 
     const result = await post('/api/aulas', data);
     state.ultimaAulaId = result.id;
