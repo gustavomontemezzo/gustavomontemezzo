@@ -1,19 +1,24 @@
 /* Service Worker — Sistema de Estudos Tiago */
 
-const CACHE_NAME = 'tiago-v7';
-const URLS_CACHE = ['/'];
+const CACHE_NAME = 'tiago-v8';
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(URLS_CACHE)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
+  // Apagar TODOS os caches antigos
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    ).then(() => clients.claim())
+  );
 });
 
+// Sempre busca da rede — sem cache
 self.addEventListener('fetch', e => {
-  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+  if (e.request.method !== 'GET') return;
+  e.respondWith(fetch(e.request));
 });
 
 // ─── Push ─────────────────────────────────────────────────────────────────────
