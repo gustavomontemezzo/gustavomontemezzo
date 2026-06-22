@@ -302,6 +302,7 @@ class AulaCreate(BaseModel):
     pagina_fim: Optional[int] = None
     conteudo: str
     fonte: str = "manual"
+    fotos: Optional[list] = None
 
 class QuizResposta(BaseModel):
     usuario: str = "tiago"
@@ -456,17 +457,10 @@ async def criar_aula(aula: AulaCreate):
     c = conn.cursor()
 
     try:
-        # Coletar fotos recentes
+        # Usar fotos enviadas explicitamente pelo cliente
         fotos_recentes = []
-        try:
-            agora = datetime.now().timestamp()
-            fotos_recentes = [
-                str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
-                if f.is_file() and (agora - f.stat().st_mtime) < 60
-                and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
-            ]
-        except Exception as e:
-            print(f"Erro ao coletar fotos: {e}")
+        if aula.fotos:
+            fotos_recentes = [str(UPLOADS / f) for f in aula.fotos if (UPLOADS / f).exists()]
 
         ia_result = gerar_resumo_e_quiz(aula.materia, aula.capitulo or "", aula.conteudo, aula.trimestre, usuario, fotos_recentes)
         resumo = ia_result.get("resumo", "")

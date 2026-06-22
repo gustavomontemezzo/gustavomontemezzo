@@ -336,12 +336,16 @@ async function registrarAula(event, acao = 'proximo') {
   };
 
   try {
-    // Enviar todas as fotos ANTES da aula para o Claude poder usá-las
+    // Enviar fotos e coletar filenames para associar explicitamente à aula
+    const filenames = [];
     for (const file of fotosAcumuladas) {
       const formData = new FormData();
       formData.append('file', file);
-      await fetch('/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.filename) filenames.push(json.filename);
     }
+    if (filenames.length > 0) data.fotos = filenames;
 
     const result = await post('/api/aulas', data);
     state.ultimaAulaId = result.id;
