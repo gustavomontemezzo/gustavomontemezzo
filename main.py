@@ -7,7 +7,7 @@ import sqlite3
 import json
 import os
 import hashlib
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional, List
 from contextlib import asynccontextmanager
@@ -57,6 +57,10 @@ VAPID_PUBLIC_KEY  = "BEtZLw4fHHCWDLZwc61SSYgHyjHbY_GkBVUsNPpjRfSGyv9-Oovc4Ca0Rbb
 VAPID_CLAIMS      = {"sub": "mailto:gustavomontemezzo@hotmail.com"}
 
 TZ_BR = pytz.timezone("America/Sao_Paulo")
+
+def hoje_br() -> str:
+    """Retorna a data de hoje no fuso horário de Brasília (UTC-3) como string ISO."""
+    return datetime.now(TZ_BR).date().isoformat()
 
 # Horários dos lembretes por dia da semana (day_of_week: hora, minuto)
 AGENDA_LEMBRETES = {
@@ -498,7 +502,7 @@ async def criar_aula(aula: AulaCreate):
                   json.dumps(p["alternativas"], ensure_ascii=False),
                   p["correta"], p.get("explicacao", ""), p.get("tema", "")))
 
-        hoje = date.today().isoformat()
+        hoje = hoje_br()
         existe_streak = c.execute("SELECT id FROM streaks WHERE usuario=? AND data=?", (usuario, hoje)).fetchone()
         if existe_streak:
             c.execute("UPDATE streaks SET registros = registros + 1 WHERE usuario=? AND data=?", (usuario, hoje))
@@ -665,12 +669,11 @@ async def estatisticas(usuario: str = "tiago"):
 
     # Streak atual
     streak_atual = 0
-    dia_check = date.today()
+    dia_check = datetime.now(TZ_BR).date()
     while True:
         existe = c.execute("SELECT 1 FROM streaks WHERE usuario=? AND data=?", (usuario, dia_check.isoformat())).fetchone()
         if existe:
             streak_atual += 1
-            from datetime import timedelta
             dia_check = dia_check - timedelta(days=1)
         else:
             break
@@ -700,7 +703,7 @@ async def estatisticas(usuario: str = "tiago"):
     """, (usuario,)).fetchall()
 
     # Dias estudados este mês
-    mes_atual = date.today().strftime("%Y-%m")
+    mes_atual = datetime.now(TZ_BR).strftime("%Y-%m")
     dias_mes = c.execute("SELECT COUNT(*) FROM streaks WHERE usuario=? AND data LIKE ?", (usuario, f"{mes_atual}%")).fetchone()[0]
 
     conn.close()
@@ -975,7 +978,7 @@ async def debug_colunas():
 async def aulas_do_dia(usuario: str = "tiago", data: Optional[str] = None):
     """Retorna aulas do dia com total de perguntas e se o quiz foi concluído."""
     if not data:
-        data = date.today().isoformat()
+        data = hoje_br()
     conn = get_db()
     c = conn.cursor()
     rows = c.execute(
