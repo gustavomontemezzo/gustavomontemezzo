@@ -358,11 +358,11 @@ Seu aluno é {perfil['nome']}, {perfil['idade']} anos, {perfil['serie']}, {perfi
 MATÉRIA: {materia}
 CAPÍTULO/TÓPICO: {capitulo}
 TRIMESTRE: {trimestre}
-CONTEÚDO ESTUDADO:
+{f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {len(fotos)} foto(s) acima. Leia TODO o conteúdo visível nas imagens (textos, esquemas, tabelas, exercícios). As fotos são a base principal do resumo e do quiz." if fotos else ""}
+ANOTAÇÕES DO ALUNO (complemento):
 ---
-{conteudo[:3000] if conteudo and conteudo.strip() else "(O aluno não digitou texto — use EXCLUSIVAMENTE o conteúdo das fotos do caderno/apostila acima como fonte para o resumo e o quiz.)"}
+{conteudo[:3000] if conteudo and conteudo.strip() else "(nenhuma anotação — use apenas as fotos acima)"}
 ---
-{f"IMPORTANTE: Há {len(fotos)} foto(s) do caderno/apostila acima. Leia todo o conteúdo visível nas imagens e use-o como base principal." if fotos else ""}
 
 TAREFA:
 1. Crie um RESUMO CRIATIVO (mínimo 400 palavras, máximo 600 palavras) do conteúdo.
@@ -758,8 +758,8 @@ MATÉRIA: {materia}
 TRIMESTRE: {trimestre}
 TÓPICOS A ESTUDAR: {topicos}
 {paginas_info}
-{f"CONTEÚDO ADICIONAL: {conteudo_extra[:2000]}" if conteudo_extra else ""}
-{f"(Há {len(fotos)} foto(s) do caderno/apostila — use o conteúdo das imagens para enriquecer o guia.)" if fotos else ""}
+{f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {len(fotos)} foto(s) acima. Leia TODO o conteúdo visível nas imagens. As fotos são a base principal do guia." if fotos else ""}
+{f"CONTEÚDO ADICIONAL DO ALUNO: {conteudo_extra[:2000]}" if conteudo_extra else ""}
 
 Crie um GUIA COMPLETO DE ESTUDO PARA PROVA em HTML. O guia deve ser rico, visual e direto ao ponto.
 
