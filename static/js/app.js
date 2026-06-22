@@ -502,9 +502,13 @@ function fecharModal() {
   document.getElementById('modal-overlay').classList.add('hidden');
 }
 
-function irParaQuiz() {
+async function irParaQuiz() {
   fecharModal();
-  showTab('hoje');
+  if (state.ultimaAulaId) {
+    await abrirQuizDia(state.ultimaAulaId, true);
+  } else {
+    showTab('hoje');
+  }
 }
 
 // ─── Ver aula ─────────────────────────────────────────────────────────────────
@@ -865,7 +869,10 @@ async function gerarGuiaProva(event) {
   }
 }
 
+let guiaAtual = { materia: '', trimestre: '' };
+
 function mostrarGuia(html, materia, trimestre, pIni, pFim) {
+  guiaAtual = { materia, trimestre };
   document.getElementById('prova-form-area').classList.add('hidden');
   document.getElementById('prova-guia-area').classList.remove('hidden');
 
@@ -875,6 +882,32 @@ function mostrarGuia(html, materia, trimestre, pIni, pFim) {
   document.getElementById('guia-conteudo').innerHTML = html;
 
   carregarHistoricoGuias();
+}
+
+async function quizDoGuia() {
+  const { materia, trimestre } = guiaAtual;
+  if (!materia) return;
+
+  const params = new URLSearchParams({ materia, trimestre, limite: 10 });
+  const data = await get(`/api/quiz?${params}`);
+  if (!data.perguntas || data.perguntas.length === 0) {
+    alert('Nenhuma pergunta disponível para esta matéria. Registre aulas de ' + materia + ' no Treino primeiro!');
+    return;
+  }
+
+  state.quiz = {
+    perguntas: data.perguntas,
+    atual: 0, certas: 0, erradas: 0,
+    erradasDetalhes: [], ativa: true,
+    origemDia: false
+  };
+
+  showTab('quiz');
+  document.getElementById('quiz-selector').classList.add('hidden');
+  document.getElementById('quiz-resumo-tela').classList.add('hidden');
+  document.getElementById('quiz-resultado').classList.add('hidden');
+  document.getElementById('quiz-game').classList.remove('hidden');
+  renderPergunta();
 }
 
 function imprimirGuia() {
@@ -1012,7 +1045,7 @@ async function verResumoAula(aulaId) {
 // Estado do quiz do dia
 let quizDiaData = null;
 
-async function abrirQuizDia(aulaId) {
+async function abrirQuizDia(aulaId, direto = false) {
   const data = await get(`/api/quiz/dia?aula_id=${aulaId}`);
   if (!data.perguntas || data.perguntas.length === 0) {
     alert('Nenhuma pergunta disponível para esta aula.');
@@ -1020,17 +1053,26 @@ async function abrirQuizDia(aulaId) {
   }
   quizDiaData = data;
 
-  // Mostrar tela de resumo
-  showTab('quiz');
-  document.getElementById('quiz-selector').classList.add('hidden');
-  document.getElementById('quiz-resumo-tela').classList.remove('hidden');
-  document.getElementById('quiz-game').classList.add('hidden');
-  document.getElementById('quiz-resultado').classList.add('hidden');
+  if (direto) {
+    // Vai direto para o jogo sem mostrar o resumo de novo
+    showTab('quiz');
+    document.getElementById('quiz-selector').classList.add('hidden');
+    document.getElementById('quiz-resumo-tela').classList.add('hidden');
+    document.getElementById('quiz-resultado').classList.add('hidden');
+    iniciarQuizDoDia();
+  } else {
+    // Mostra a tela de resumo intermediária (quando aberto pela aba Hoje)
+    showTab('quiz');
+    document.getElementById('quiz-selector').classList.add('hidden');
+    document.getElementById('quiz-resumo-tela').classList.remove('hidden');
+    document.getElementById('quiz-game').classList.add('hidden');
+    document.getElementById('quiz-resultado').classList.add('hidden');
 
-  const aula = data.aula;
-  document.getElementById('quiz-resumo-materia-badge').textContent = aula.materia || '';
-  document.getElementById('quiz-resumo-capitulo').textContent = aula.capitulo || '';
-  document.getElementById('quiz-resumo-texto').innerHTML = formatarTexto(aula.resumo || '');
+    const aula = data.aula;
+    document.getElementById('quiz-resumo-materia-badge').textContent = aula.materia || '';
+    document.getElementById('quiz-resumo-capitulo').textContent = aula.capitulo || '';
+    document.getElementById('quiz-resumo-texto').innerHTML = formatarTexto(aula.resumo || '');
+  }
 }
 
 function iniciarQuizDoDia() {

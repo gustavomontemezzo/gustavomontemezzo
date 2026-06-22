@@ -7,7 +7,7 @@
 <meta name="description" content="Sistema de Estudos do Tiago">
 <title>⚽ Arena do Conhecimento — Tiago</title>
 <link rel="manifest" href="/static/manifest.json">
-<link rel="stylesheet" href="/static/css/style.css?v=20260622b">
+<link rel="stylesheet" href="/static/css/style.css?v=20260622c">
 </head>
 <body>
 
@@ -424,7 +424,8 @@
             <div class="guia-titulo" id="guia-titulo"></div>
             <div class="guia-sub" id="guia-sub"></div>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-primary btn-sm" id="btn-quiz-guia" onclick="quizDoGuia()" style="background:#E8A000">⚡ Fazer Quiz</button>
             <button class="btn-secondary btn-sm" onclick="imprimirGuia()">🖨️ Imprimir</button>
             <button class="btn-secondary btn-sm" onclick="novoGuia()">+ Novo guia</button>
           </div>
@@ -489,6 +490,6 @@
   <span class="clube-tag liverpool">🔴 Liverpool</span>
 </footer>
 
-<script src="/static/js/app.js?v=20260622b"></script>
+<script src="/static/js/app.js?v=20260622c"></script>
 </body>
 </html>
