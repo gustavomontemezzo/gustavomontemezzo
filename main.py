@@ -359,7 +359,7 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
                     "source": {"type": "base64", "media_type": media_type, "data": img_data}
                 })
 
-    fotos_instrucao = f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {foto_count} foto(s) acima, numeradas [Foto 1], [Foto 2], etc. Leia TODO o conteúdo visível nas imagens. As fotos são a base principal do resumo e do quiz. Se alguma foto estiver ilegível (desfocada, escura, cortada), anote o número dela no campo fotos_problemas." if foto_count > 0 else ""
+    fotos_instrucao = f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {foto_count} foto(s) acima, numeradas [Foto 1], [Foto 2], etc. Leia TODO o conteúdo visível nas imagens. As fotos são a base principal do resumo e do quiz. Se alguma foto estiver ilegível, inicie o resumo com FOTOS_ILEGÍVEIS:[números] em uma linha isolada (ex: FOTOS_ILEGÍVEIS:[2,4])." if foto_count > 0 else ""
 
     prompt = f"""Você é um professor criativo e exigente.
 Seu aluno é {perfil['nome']}, {perfil['idade']} anos, {perfil['serie']}, {perfil['escola']}.
@@ -392,7 +392,6 @@ TAREFA:
 FORMATO DE RESPOSTA (JSON puro, sem markdown):
 {{
   "resumo": "texto do resumo aqui",
-  "fotos_problemas": [],
   "perguntas": [
     {{
       "pergunta": "texto da pergunta",
@@ -418,12 +417,19 @@ FORMATO DE RESPOSTA (JSON puro, sem markdown):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
+        # Extrair fotos_problemas se Claude indicou no início do resumo
+        import re
+        fotos_problemas = []
+        fp_match = re.search(r'FOTOS_ILEG[ÍI]VEIS:\s*\[([^\]]*)\]', raw)
+        if fp_match:
+            fotos_problemas = [int(x.strip()) for x in fp_match.group(1).split(',') if x.strip().isdigit()]
         # Tentar parse direto
         try:
-            return json.loads(raw)
+            result = json.loads(raw)
+            result["fotos_problemas"] = fotos_problemas
+            return result
         except json.JSONDecodeError:
             # JSON truncado — extrair o que foi gerado até onde está completo
-            import re
             resumo_match = re.search(r'"resumo"\s*:\s*"((?:[^"\\]|\\.)*)"', raw)
             resumo = resumo_match.group(1) if resumo_match else f"Resumo de {materia}: {conteudo[:300]}"
             # Extrair perguntas completas (que têm todos os campos)
@@ -435,10 +441,10 @@ FORMATO DE RESPOSTA (JSON puro, sem markdown):
                         perguntas.append(p)
                 except Exception:
                     pass
-            return {"resumo": resumo.replace('\\"', '"'), "perguntas": perguntas}
+            return {"resumo": resumo.replace('\\"', '"'), "perguntas": perguntas, "fotos_problemas": fotos_problemas}
     except Exception as e:
         print(f"Erro IA: {e}")
-        return {"resumo": f"Resumo de {materia}: {conteudo[:300]}", "perguntas": []}
+        return {"resumo": f"Resumo de {materia}: {conteudo[:300]}", "perguntas": [], "fotos_problemas": []}
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
@@ -776,7 +782,7 @@ def gerar_guia_prova(materia: str, trimestre: str, topicos: str,
                 media_type = media_types.get(ext, "image/jpeg")
                 conteudo_msg.append({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": img_data}})
 
-    fotos_instrucao = f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {foto_count} foto(s) acima, numeradas [Foto 1], [Foto 2], etc. Leia TODO o conteúdo visível. Se alguma foto estiver ilegível, liste o número dela em fotos_ilegíveis." if foto_count > 0 else ""
+    fotos_instrucao = f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {foto_count} foto(s) acima, numeradas [Foto 1], [Foto 2], etc. Leia TODO o conteúdo visível. Se alguma foto estiver ilegível (desfocada, escura, cortada), mencione: FOTOS_ILEGÍVEIS:[número,número] em uma linha separada antes do HTML." if foto_count > 0 else ""
 
     prompt = f"""Você é um professor especialista em criar materiais de revisão para provas do Ensino Médio.
 Seu aluno é Tiago, 15 anos, 1º ano do Ensino Médio, Colégio Vicentino São José, Foz do Iguaçu - PR.
@@ -787,15 +793,9 @@ TÓPICOS A ESTUDAR: {topicos}
 {fotos_instrucao}
 {f"CONTEÚDO ADICIONAL DO ALUNO: {conteudo_extra[:2000]}" if conteudo_extra else ""}
 
-Crie um GUIA COMPLETO DE ESTUDO PARA PROVA. Responda em JSON puro, sem markdown.
+Crie um GUIA COMPLETO DE ESTUDO PARA PROVA em HTML. O guia deve ser rico, visual e direto ao ponto.
 
-FORMATO DE RESPOSTA:
-{{
-  "fotos_problemas": [],
-  "guia_html": "<div class=\\"guia-secao destaque\\">...</div>..."
-}}
-
-O campo guia_html deve conter HTML com esta estrutura obrigatória:
+ESTRUTURA OBRIGATÓRIA (use exatamente estas seções em HTML):
 
 1. <div class="guia-secao destaque">
    <h3>🎯 O que mais cai nesta prova</h3>
@@ -823,6 +823,7 @@ O campo guia_html deve conter HTML com esta estrutura obrigatória:
    </div>
 
 REGRAS:
+- Retorne APENAS o HTML das seções, sem DOCTYPE, html, head ou body
 - Use <strong> para termos importantes, <ul><li> para listas, <table><thead><tbody> para tabelas
 - Seja completo — este é o material principal de estudo do Tiago para a prova
 - Linguagem clara, direta, sem rodeios"""
@@ -835,15 +836,15 @@ REGRAS:
             messages=[{"role": "user", "content": conteudo_msg}]
         )
         raw = message.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        try:
-            parsed = json.loads(raw)
-            return parsed.get("guia_html", raw), parsed.get("fotos_problemas", [])
-        except Exception:
-            return raw, []
+        # Extrair fotos_problemas se Claude reportou
+        fotos_problemas = []
+        import re as _re
+        m = _re.search(r'FOTOS_ILEG[ÍI]VEIS:\s*\[([^\]]*)\]', raw)
+        if m:
+            nums = [int(x.strip()) for x in m.group(1).split(',') if x.strip().isdigit()]
+            fotos_problemas = nums
+            raw = _re.sub(r'FOTOS_ILEG[ÍI]VEIS:\s*\[[^\]]*\]\n?', '', raw).strip()
+        return raw, fotos_problemas
     except Exception as e:
         print(f"Erro guia prova: {e}")
         return f"<p>Erro ao gerar guia: {e}</p>", []
