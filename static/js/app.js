@@ -400,7 +400,6 @@ function adicionarFotos(input) {
 }
 
 function adicionarFotosProva(input) {
-  alert('📷 foto recebida: ' + (input.files ? input.files.length : 0) + ' arquivo(s)');
   if (!input.files || input.files.length === 0) return;
   Array.from(input.files).forEach(file => {
     fotosProva.push(file);

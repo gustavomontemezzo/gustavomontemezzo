@@ -374,26 +374,28 @@ Ex: Hoje estudamos fotossíntese. O prof explicou que as plantas usam luz solar 
             <textarea id="prova-conteudo" rows="4"
               placeholder="Cole aqui anotações do caderno, pontos que o professor destacou, etc."></textarea>
           </div>
-          <div class="form-group">
-            <label>📷 Foto do caderno ou apostila (opcional)</label>
-            <div style="display:flex;gap:8px;margin-bottom:8px;">
-              <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('prova-foto-camera').click()">
-                <div class="upload-icon">📷</div>
-                <div class="upload-text" style="font-size:0.8rem;">Tirar foto</div>
-                <input type="file" id="prova-foto-camera" accept="image/*" capture="environment" style="display:none" onchange="adicionarFotosProva(this)">
-              </div>
-              <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('prova-foto-galeria').click()">
-                <div class="upload-icon">🖼️</div>
-                <div class="upload-text" style="font-size:0.8rem;">Galeria (várias)</div>
-                <input type="file" id="prova-foto-galeria" accept="image/*" multiple style="display:none" onchange="adicionarFotosProva(this)">
-              </div>
-            </div>
-            <div id="prova-foto-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
-          </div>
           <button type="submit" class="btn-primary btn-large" id="btn-gerar-guia">
             🎯 Gerar Guia de Estudo
           </button>
         </form>
+
+        <!-- Fora do form para evitar bloqueio do Android em campos required vazios -->
+        <div class="form-group" style="margin-top:16px;">
+          <label>📷 Foto do caderno ou apostila (opcional)</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('prova-foto-camera').click()">
+              <div class="upload-icon">📷</div>
+              <div class="upload-text" style="font-size:0.8rem;">Tirar foto</div>
+              <input type="file" id="prova-foto-camera" accept="image/*" capture="environment" style="display:none" onchange="adicionarFotosProva(this)">
+            </div>
+            <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('prova-foto-galeria').click()">
+              <div class="upload-icon">🖼️</div>
+              <div class="upload-text" style="font-size:0.8rem;">Galeria (várias)</div>
+              <input type="file" id="prova-foto-galeria" accept="image/*" multiple style="display:none" onchange="adicionarFotosProva(this)">
+            </div>
+          </div>
+          <div id="prova-foto-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+        </div>
       </div>
 
       <!-- Guia gerado -->
