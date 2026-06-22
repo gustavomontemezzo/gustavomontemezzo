@@ -1032,7 +1032,7 @@ async function carregarPainelDia() {
   document.getElementById('hoje-data-label').textContent =
     'Aulas de ' + _hj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
 
-  const data = await get('/api/aulas/dia');
+  const data = await get(`/api/aulas/dia?data=${hoje}`);
   const aulas = data.aulas || [];
   const cardsEl = document.getElementById('hoje-cards');
   const topoEl  = document.getElementById('hoje-resumo-topo');
