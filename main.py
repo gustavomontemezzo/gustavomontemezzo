@@ -342,11 +342,14 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
     conteudo_msg = []
 
     # Adicionar fotos se existirem
+    foto_count = 0
     if fotos:
         import base64
         media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif"}
         for fp in fotos[:15]:
             if Path(fp).exists():
+                foto_count += 1
+                conteudo_msg.append({"type": "text", "text": f"[Foto {foto_count}]"})
                 with open(fp, "rb") as f:
                     img_data = base64.standard_b64encode(f.read()).decode("utf-8")
                 ext = Path(fp).suffix.lower()
@@ -356,13 +359,15 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
                     "source": {"type": "base64", "media_type": media_type, "data": img_data}
                 })
 
+    fotos_instrucao = f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {foto_count} foto(s) acima, numeradas [Foto 1], [Foto 2], etc. Leia TODO o conteúdo visível nas imagens. As fotos são a base principal do resumo e do quiz. Se alguma foto estiver ilegível (desfocada, escura, cortada), anote o número dela no campo fotos_problemas." if foto_count > 0 else ""
+
     prompt = f"""Você é um professor criativo e exigente.
 Seu aluno é {perfil['nome']}, {perfil['idade']} anos, {perfil['serie']}, {perfil['escola']}.
 {perfil['interesses']}
 MATÉRIA: {materia}
 CAPÍTULO/TÓPICO: {capitulo}
 TRIMESTRE: {trimestre}
-{f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {len(fotos)} foto(s) acima. Leia TODO o conteúdo visível nas imagens (textos, esquemas, tabelas, exercícios). As fotos são a base principal do resumo e do quiz." if fotos else ""}
+{fotos_instrucao}
 ANOTAÇÕES DO ALUNO (complemento):
 ---
 {conteudo[:3000] if conteudo and conteudo.strip() else "(nenhuma anotação — use apenas as fotos acima)"}
@@ -387,6 +392,7 @@ TAREFA:
 FORMATO DE RESPOSTA (JSON puro, sem markdown):
 {{
   "resumo": "texto do resumo aqui",
+  "fotos_problemas": [],
   "perguntas": [
     {{
       "pergunta": "texto da pergunta",
@@ -499,6 +505,7 @@ async def criar_aula(aula: AulaCreate):
         return {
             "id": aula_id,
             "resumo": resumo,
+            "fotos_problemas": ia_result.get("fotos_problemas", []),
             "total_perguntas": len(perguntas),
             "mensagem": "Aula registrada com sucesso! 🎉"
         }
@@ -742,27 +749,34 @@ class GuiaProvaCreate(BaseModel):
     pagina_ini: Optional[int] = None
     pagina_fim: Optional[int] = None
     conteudo_extra: Optional[str] = ""
+    foto_token: Optional[str] = None
 
 def gerar_guia_prova(materia: str, trimestre: str, topicos: str,
                      pagina_ini: Optional[int], pagina_fim: Optional[int],
-                     conteudo_extra: str, fotos: list = None) -> str:
+                     conteudo_extra: str, fotos: list = None):
     if not ANTHROPIC_API_KEY:
-        return "<p>API não configurada.</p>"
+        return "<p>API não configurada.</p>", []
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     paginas_info = f"Páginas {pagina_ini} a {pagina_fim} da apostila." if pagina_ini and pagina_fim else ""
 
     conteudo_msg = []
+    foto_count = 0
     if fotos:
         import base64
+        media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif"}
         for fp in fotos[:15]:
             if Path(fp).exists():
+                foto_count += 1
+                conteudo_msg.append({"type": "text", "text": f"[Foto {foto_count}]"})
                 with open(fp, "rb") as f:
                     img_data = base64.standard_b64encode(f.read()).decode("utf-8")
                 ext = Path(fp).suffix.lower()
-                media_type = "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/png"
+                media_type = media_types.get(ext, "image/jpeg")
                 conteudo_msg.append({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": img_data}})
+
+    fotos_instrucao = f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {foto_count} foto(s) acima, numeradas [Foto 1], [Foto 2], etc. Leia TODO o conteúdo visível. Se alguma foto estiver ilegível, liste o número dela em fotos_ilegíveis." if foto_count > 0 else ""
 
     prompt = f"""Você é um professor especialista em criar materiais de revisão para provas do Ensino Médio.
 Seu aluno é Tiago, 15 anos, 1º ano do Ensino Médio, Colégio Vicentino São José, Foz do Iguaçu - PR.
@@ -770,12 +784,18 @@ MATÉRIA: {materia}
 TRIMESTRE: {trimestre}
 TÓPICOS A ESTUDAR: {topicos}
 {paginas_info}
-{f"FONTE PRINCIPAL — FOTOS DO CADERNO/APOSTILA: Há {len(fotos)} foto(s) acima. Leia TODO o conteúdo visível nas imagens. As fotos são a base principal do guia." if fotos else ""}
+{fotos_instrucao}
 {f"CONTEÚDO ADICIONAL DO ALUNO: {conteudo_extra[:2000]}" if conteudo_extra else ""}
 
-Crie um GUIA COMPLETO DE ESTUDO PARA PROVA em HTML. O guia deve ser rico, visual e direto ao ponto.
+Crie um GUIA COMPLETO DE ESTUDO PARA PROVA. Responda em JSON puro, sem markdown.
 
-ESTRUTURA OBRIGATÓRIA (use exatamente estas seções em HTML):
+FORMATO DE RESPOSTA:
+{{
+  "fotos_problemas": [],
+  "guia_html": "<div class=\\"guia-secao destaque\\">...</div>..."
+}}
+
+O campo guia_html deve conter HTML com esta estrutura obrigatória:
 
 1. <div class="guia-secao destaque">
    <h3>🎯 O que mais cai nesta prova</h3>
@@ -789,14 +809,12 @@ ESTRUTURA OBRIGATÓRIA (use exatamente estas seções em HTML):
 
 3. <div class="guia-secao">
    <h3>📊 Tabela Comparativa</h3>
-   Quando houver 2+ elementos para comparar (pessoas, correntes, períodos, teorias):
-   crie uma <table> com colunas relevantes (nome, período, principais ideias, obras/legado).
+   Quando houver 2+ elementos para comparar: crie uma <table> com colunas relevantes.
    </div>
 
 4. <div class="guia-secao">
    <h3>⚡ Conceitos-Chave — Decore isso!</h3>
-   Lista de definições curtas e precisas dos termos mais importantes.
-   Formato: <strong>Termo:</strong> definição em 1-2 linhas.
+   Definições curtas dos termos mais importantes. Formato: <strong>Termo:</strong> definição.
    </div>
 
 5. <div class="guia-secao alerta">
@@ -805,10 +823,7 @@ ESTRUTURA OBRIGATÓRIA (use exatamente estas seções em HTML):
    </div>
 
 REGRAS:
-- Retorne APENAS o HTML das seções, sem <!DOCTYPE>, <html>, <head> ou <body>
-- Use <strong> para termos importantes
-- Use <ul><li> para listas
-- Tabelas devem ter <thead> e <tbody>
+- Use <strong> para termos importantes, <ul><li> para listas, <table><thead><tbody> para tabelas
 - Seja completo — este é o material principal de estudo do Tiago para a prova
 - Linguagem clara, direta, sem rodeios"""
 
@@ -819,24 +834,28 @@ REGRAS:
             max_tokens=8000,
             messages=[{"role": "user", "content": conteudo_msg}]
         )
-        return message.content[0].text.strip()
+        raw = message.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        try:
+            parsed = json.loads(raw)
+            return parsed.get("guia_html", raw), parsed.get("fotos_problemas", [])
+        except Exception:
+            return raw, []
     except Exception as e:
         print(f"Erro guia prova: {e}")
-        return f"<p>Erro ao gerar guia: {e}</p>"
+        return f"<p>Erro ao gerar guia: {e}</p>", []
 
 @app.post("/api/guia-prova")
 async def criar_guia_prova(dados: GuiaProvaCreate):
     fotos_recentes = []
-    try:
-        agora = datetime.now().timestamp()
-        fotos_recentes = [
-            str(f) for f in sorted(UPLOADS.glob("*"), key=lambda f: f.stat().st_mtime, reverse=True)
-            if f.is_file() and (agora - f.stat().st_mtime) < 60
-            and f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]
-        ]
-    except Exception:
-        pass
-    guia_html = gerar_guia_prova(
+    if dados.foto_token and dados.foto_token in _fotos_por_token:
+        entradas = _fotos_por_token.pop(dados.foto_token)
+        fotos_recentes = [str(UPLOADS / n) for n, _ in entradas if (UPLOADS / n).exists()]
+    print(f"[guia] token={dados.foto_token} fotos={fotos_recentes}")
+    guia_html, fotos_problemas = gerar_guia_prova(
         dados.materia, dados.trimestre, dados.topicos,
         dados.pagina_ini, dados.pagina_fim, dados.conteudo_extra or "", fotos_recentes
     )
@@ -850,7 +869,7 @@ async def criar_guia_prova(dados: GuiaProvaCreate):
     guia_id = c.lastrowid
     conn.commit()
     conn.close()
-    return {"id": guia_id, "guia_html": guia_html}
+    return {"id": guia_id, "guia_html": guia_html, "fotos_problemas": fotos_problemas}
 
 @app.get("/api/guia-prova")
 async def listar_guias(usuario: str = "tiago", materia: Optional[str] = None, trimestre: Optional[str] = None):

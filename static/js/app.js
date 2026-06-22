@@ -370,6 +370,9 @@ async function registrarAula(event, acao = 'proximo') {
       document.getElementById('modal-resumo').innerHTML = formatarTexto(result.resumo);
       document.getElementById('modal-sucesso').classList.remove('hidden');
       document.getElementById('modal-overlay').classList.remove('hidden');
+      if (result.fotos_problemas && result.fotos_problemas.length > 0) {
+        result.fotos_problemas.forEach(idx => marcarFotoIlegivel(idx, 'foto-preview'));
+      }
     }
 
   } catch(e) {
@@ -412,20 +415,62 @@ function comprimirImagem(file) {
   });
 }
 
+function criarCardFoto(src, idx, array, previewId) {
+  const preview = document.getElementById(previewId);
+  if (!preview) return;
+  const id = `foto-card-${previewId}-${idx}`;
+  const inputId = `foto-subst-${previewId}-${idx}`;
+  const card = document.createElement('div');
+  card.id = id;
+  card.style.cssText = 'position:relative;display:inline-flex;flex-direction:column;align-items:center;margin:4px;';
+  card.innerHTML = `
+    <div style="position:relative">
+      <img src="${src}" data-idx="${idx}" style="width:90px;height:90px;border-radius:8px;object-fit:cover;border:2px solid #ddd;">
+      <span style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;border-radius:4px;padding:1px 5px">${idx}</span>
+    </div>
+    <label for="${inputId}" style="margin-top:4px;font-size:10px;font-weight:700;color:#003DA5;cursor:pointer;background:#e8f0fe;border-radius:6px;padding:3px 8px;">🔄 Substituir</label>
+    <input type="file" id="${inputId}" accept="image/*" capture="environment" style="display:none" onchange="substituirFoto(this,${idx},'${array}','${previewId}')">
+  `;
+  preview.appendChild(card);
+}
+
+function substituirFoto(input, idx, arrayName, previewId) {
+  if (!input.files || input.files.length === 0) return;
+  comprimirImagem(input.files[0]).then(comprimida => {
+    const arr = arrayName === 'fotosAcumuladas' ? fotosAcumuladas : fotosProva;
+    arr[idx - 1] = comprimida;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const card = document.getElementById(`foto-card-${previewId}-${idx}`);
+      if (card) {
+        const img = card.querySelector('img');
+        if (img) { img.src = e.target.result; img.style.border = '2px solid #27AE60'; }
+        const label = card.querySelector('label');
+        if (label) { label.style.background = '#e8f8f0'; label.style.color = '#27AE60'; label.textContent = '✅ Substituída'; }
+      }
+    };
+    reader.readAsDataURL(comprimida);
+  });
+}
+
+function marcarFotoIlegivel(idx, previewId) {
+  const card = document.getElementById(`foto-card-${previewId}-${idx}`);
+  if (!card) return;
+  const img = card.querySelector('img');
+  if (img) img.style.border = '2px solid #E74C3C';
+  const label = card.querySelector('label');
+  if (label) { label.style.background = '#fde8e8'; label.style.color = '#E74C3C'; label.textContent = '⚠️ Ilegível — Substituir'; }
+}
+
 function adicionarFotos(input) {
   if (!input.files || input.files.length === 0) return;
   Array.from(input.files).forEach(async file => {
     if (fotosAcumuladas.length >= MAX_FOTOS) return;
     const comprimida = await comprimirImagem(file);
     fotosAcumuladas.push(comprimida);
+    const idx = fotosAcumuladas.length;
     const reader = new FileReader();
-    reader.onload = e => {
-      const preview = document.getElementById('foto-preview');
-      if (preview) {
-        const n = fotosAcumuladas.length;
-        preview.innerHTML += `<div style="position:relative;display:inline-block;margin:4px"><img src="${e.target.result}" style="max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;"><span style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;border-radius:4px;padding:1px 4px">${n}</span></div>`;
-      }
-    };
+    reader.onload = e => criarCardFoto(e.target.result, idx, 'fotosAcumuladas', 'foto-preview');
     reader.readAsDataURL(comprimida);
   });
 }
@@ -436,17 +481,13 @@ function adicionarFotosProva(input) {
     if (fotosProva.length >= MAX_FOTOS) return;
     const comprimida = await comprimirImagem(file);
     fotosProva.push(comprimida);
+    const idx = fotosProva.length;
     const reader = new FileReader();
-    reader.onload = e => {
-      const preview = document.getElementById('prova-foto-preview');
-      if (preview) {
-        const n = fotosProva.length;
-        preview.innerHTML += `<div style="position:relative;display:inline-block;margin:4px"><img src="${e.target.result}" style="max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;"><span style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;border-radius:4px;padding:1px 4px">${n}</span></div>`;
-      }
-    };
+    reader.onload = e => criarCardFoto(e.target.result, idx, 'fotosProva', 'prova-foto-preview');
     reader.readAsDataURL(comprimida);
   });
 }
+
 
 function limparFotos() {
   fotosAcumuladas = [];
@@ -800,15 +841,22 @@ async function gerarGuiaProva(event) {
   };
 
   try {
+    const token = Date.now().toString(36) + Math.random().toString(36).slice(2);
     for (const file of fotosProva) {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('token', token);
       await fetch('/api/upload', { method: 'POST', body: formData });
     }
+    if (fotosProva.length > 0) dados.foto_token = token;
     const result = await post('/api/guia-prova', dados);
     mostrarGuia(result.guia_html, materia, trimestre, pIni, pFim);
-    fotosProva = [];
-    document.getElementById('prova-foto-preview').innerHTML = '';
+    if (result.fotos_problemas && result.fotos_problemas.length > 0) {
+      result.fotos_problemas.forEach(idx => marcarFotoIlegivel(idx, 'prova-foto-preview'));
+    } else {
+      fotosProva = [];
+      document.getElementById('prova-foto-preview').innerHTML = '';
+    }
   } catch(e) {
     alert('Erro ao gerar guia. Tente novamente.');
   } finally {
