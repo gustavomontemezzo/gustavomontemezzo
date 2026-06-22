@@ -495,32 +495,6 @@ def normalizar_tamanho_alternativas(perguntas: list) -> list:
     return perguntas
 
 
-# ─── Admin temporário ────────────────────────────────────────────────────────
-
-@app.delete("/api/admin/limpar-dia")
-async def limpar_dia(data: str):
-    """Remove aulas, perguntas, resultados e streaks de uma data específica."""
-    conn = get_db()
-    c = conn.cursor()
-    for usuario in ["tiago", "henrique"]:
-        aula_ids = [r[0] for r in c.execute(
-            "SELECT id FROM aulas WHERE usuario=? AND data=?", (usuario, data)
-        ).fetchall()]
-        if aula_ids:
-            placeholders = ",".join("?" * len(aula_ids))
-            perg_ids = [r[0] for r in c.execute(
-                f"SELECT id FROM quiz_perguntas WHERE aula_id IN ({placeholders})", aula_ids
-            ).fetchall()]
-            if perg_ids:
-                ph2 = ",".join("?" * len(perg_ids))
-                c.execute(f"DELETE FROM quiz_resultados WHERE pergunta_id IN ({ph2})", perg_ids)
-            c.execute(f"DELETE FROM quiz_perguntas WHERE aula_id IN ({placeholders})", aula_ids)
-            c.execute("DELETE FROM aulas WHERE usuario=? AND data=?", (usuario, data))
-        c.execute("DELETE FROM streaks WHERE usuario=? AND data=?", (usuario, data))
-    conn.commit()
-    conn.close()
-    return {"ok": True, "data": data}
-
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
