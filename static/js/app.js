@@ -454,7 +454,7 @@ function criarCardFoto(src, idx, array, previewId, qualidade = 'ok') {
   const labelCor = qualidade === 'ok' ? '#27AE60' : '#E67E22';
   const labelTxt = qualidade === 'escura'    ? '⚠️ Escura — Tirar nova'
                  : qualidade === 'desfocada' ? '⚠️ Desfocada — Tirar nova'
-                 : '✅ Foto ok';
+                 : '📱 Verificada';
 
   const card = document.createElement('div');
   card.id = id;
@@ -483,7 +483,7 @@ function substituirFoto(input, idx, arrayName, previewId) {
       const label = card.querySelector('label');
       if (qualidade === 'ok') {
         if (img) { img.src = e.target.result; img.style.border = '2px solid #27AE60'; }
-        if (label) { label.style.background = '#e8f8f0'; label.style.color = '#27AE60'; label.textContent = '✅ Foto ok'; }
+        if (label) { label.style.background = '#e8f8f0'; label.style.color = '#27AE60'; label.textContent = '📱 Verificada'; }
       } else {
         const txt = qualidade === 'escura' ? '⚠️ Ainda escura — Tirar nova' : '⚠️ Ainda desfocada — Tirar nova';
         if (img) { img.src = e.target.result; img.style.border = '2px solid #E67E22'; }
