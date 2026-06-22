@@ -587,6 +587,52 @@ async def listar_aulas(usuario: str = "tiago", materia: Optional[str] = None, tr
     conn.close()
     return {"aulas": [dict(r) for r in rows]}
 
+@app.get("/api/aulas/dia")
+async def aulas_do_dia(usuario: str = "tiago", data: Optional[str] = None):
+    """Retorna aulas do dia com total de perguntas e se o quiz foi concluído."""
+    if not data:
+        data = hoje_br()
+    conn = get_db()
+    c = conn.cursor()
+    rows = c.execute(
+        "SELECT * FROM aulas WHERE usuario=? AND data=? ORDER BY criado_em",
+        (usuario, data)
+    ).fetchall()
+
+    aulas_out = []
+    for a in rows:
+        aula_dict = dict(a)
+        total_perguntas = c.execute(
+            "SELECT COUNT(*) FROM quiz_perguntas WHERE aula_id=? AND usuario=?",
+            (a["id"], usuario)
+        ).fetchone()[0]
+
+        pergunta_ids = [r[0] for r in c.execute(
+            "SELECT id FROM quiz_perguntas WHERE aula_id=? AND usuario=?",
+            (a["id"], usuario)
+        ).fetchall()]
+        quiz_concluido = False
+        if pergunta_ids:
+            placeholders = ",".join("?" * len(pergunta_ids))
+            respostas = c.execute(
+                f"SELECT COUNT(*) FROM quiz_resultados WHERE usuario=? AND pergunta_id IN ({placeholders})",
+                [usuario] + pergunta_ids
+            ).fetchone()[0]
+            quiz_concluido = respostas >= 8
+
+        aulas_out.append({
+            "id": aula_dict["id"],
+            "materia": aula_dict["materia"],
+            "capitulo": aula_dict.get("capitulo", ""),
+            "trimestre": aula_dict["trimestre"],
+            "resumo": aula_dict.get("resumo", ""),
+            "total_perguntas": total_perguntas,
+            "quiz_concluido": quiz_concluido
+        })
+
+    conn.close()
+    return {"aulas": aulas_out}
+
 @app.get("/api/aulas/{aula_id}")
 async def detalhe_aula(aula_id: int):
     conn = get_db()
@@ -1017,54 +1063,6 @@ async def debug_colunas():
 
 
 # ─── Novos endpoints: Quiz do Dia, Semana, Dificuldades, Aulas do Dia ────────
-
-@app.get("/api/aulas/dia")
-async def aulas_do_dia(usuario: str = "tiago", data: Optional[str] = None):
-    """Retorna aulas do dia com total de perguntas e se o quiz foi concluído."""
-    if not data:
-        data = hoje_br()
-    conn = get_db()
-    c = conn.cursor()
-    rows = c.execute(
-        "SELECT * FROM aulas WHERE usuario=? AND data=? ORDER BY criado_em",
-        (usuario, data)
-    ).fetchall()
-
-    aulas_out = []
-    for a in rows:
-        aula_dict = dict(a)
-        total_perguntas = c.execute(
-            "SELECT COUNT(*) FROM quiz_perguntas WHERE aula_id=? AND usuario=?",
-            (a["id"], usuario)
-        ).fetchone()[0]
-
-        # Quiz concluído = pelo menos 8 respostas para perguntas desta aula
-        pergunta_ids = [r[0] for r in c.execute(
-            "SELECT id FROM quiz_perguntas WHERE aula_id=? AND usuario=?",
-            (a["id"], usuario)
-        ).fetchall()]
-        quiz_concluido = False
-        if pergunta_ids:
-            placeholders = ",".join("?" * len(pergunta_ids))
-            respostas = c.execute(
-                f"SELECT COUNT(*) FROM quiz_resultados WHERE usuario=? AND pergunta_id IN ({placeholders})",
-                [usuario] + pergunta_ids
-            ).fetchone()[0]
-            quiz_concluido = respostas >= 8
-
-        aulas_out.append({
-            "id": aula_dict["id"],
-            "materia": aula_dict["materia"],
-            "capitulo": aula_dict.get("capitulo", ""),
-            "trimestre": aula_dict["trimestre"],
-            "resumo": aula_dict.get("resumo", ""),
-            "total_perguntas": total_perguntas,
-            "quiz_concluido": quiz_concluido
-        })
-
-    conn.close()
-    return {"aulas": aulas_out, "data": data}
-
 
 @app.get("/api/quiz/dia")
 async def quiz_do_dia(usuario: str = "tiago", aula_id: int = 0):
