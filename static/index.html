@@ -383,14 +383,14 @@
             </div>
           </div>
           <div class="form-group">
-            <label>📝 Tópicos / Assuntos da prova</label>
-            <textarea id="prova-topicos" rows="4" required
-              placeholder="Ex: Sócrates, Platão, método socrático, mundo das ideias, alegoria da caverna, República..."></textarea>
+            <label>📝 Tópicos / Assuntos da prova <span style="font-weight:400;color:#999;font-size:0.82rem;">(opcional)</span></label>
+            <textarea id="prova-topicos" rows="3"
+              placeholder="Ex: Sócrates, Platão, método socrático... (a foto já é suficiente)"></textarea>
           </div>
           <div class="form-group">
-            <label>➕ Conteúdo adicional (opcional)</label>
-            <textarea id="prova-conteudo" rows="4"
-              placeholder="Cole aqui anotações do caderno, pontos que o professor destacou, etc."></textarea>
+            <label>✍️ Anotações adicionais <span style="font-weight:400;color:#999;font-size:0.82rem;">(opcional)</span></label>
+            <textarea id="prova-conteudo" rows="3"
+              placeholder="Pontos que o professor destacou, dúvidas, etc."></textarea>
           </div>
           <button type="submit" class="btn-primary btn-large" id="btn-gerar-guia">
             🎯 Gerar Guia de Estudo
@@ -399,16 +399,17 @@
 
         <!-- Fora do form para evitar bloqueio do Android em campos required vazios -->
         <div class="form-group" style="margin-top:16px;">
-          <label>📷 Foto do caderno ou apostila (opcional)</label>
+          <label style="font-size:1rem;font-weight:800;color:var(--azul);">📸 Foto da apostila ou caderno</label>
+          <p style="font-size:0.82rem;color:#666;margin:-6px 0 10px;">Tire foto das páginas da matéria — essa é a principal fonte para o guia de estudo</p>
           <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('prova-foto-camera').click()">
+            <div class="upload-area" style="flex:1;padding:16px;border-color:var(--azul);background:rgba(0,61,165,0.04);" onclick="document.getElementById('prova-foto-camera').click()">
               <div class="upload-icon">📷</div>
-              <div class="upload-text" style="font-size:0.8rem;">Tirar foto</div>
+              <div class="upload-text" style="font-size:0.85rem;font-weight:700;">Tirar foto</div>
               <input type="file" id="prova-foto-camera" accept="image/*" capture="environment" style="display:none" onchange="adicionarFotosProva(this)">
             </div>
-            <div class="upload-area" style="flex:1;padding:12px;" onclick="document.getElementById('prova-foto-galeria').click()">
+            <div class="upload-area" style="flex:1;padding:16px;border-color:var(--azul);background:rgba(0,61,165,0.04);" onclick="document.getElementById('prova-foto-galeria').click()">
               <div class="upload-icon">🖼️</div>
-              <div class="upload-text" style="font-size:0.8rem;">Galeria (várias)</div>
+              <div class="upload-text" style="font-size:0.85rem;font-weight:700;">Galeria</div>
               <input type="file" id="prova-foto-galeria" accept="image/*" multiple style="display:none" onchange="adicionarFotosProva(this)">
             </div>
           </div>
