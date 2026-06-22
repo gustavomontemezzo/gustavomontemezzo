@@ -1,7 +1,7 @@
 /* Service Worker — Sistema de Estudos Tiago */
 
-const CACHE_NAME = 'tiago-v6';
-const URLS_CACHE = ['/', '/static/css/style.css', '/static/js/app.js'];
+const CACHE_NAME = 'tiago-v7';
+const URLS_CACHE = ['/'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(URLS_CACHE)));
