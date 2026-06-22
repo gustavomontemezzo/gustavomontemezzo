@@ -383,37 +383,68 @@ async function registrarAula(event, acao = 'proximo') {
 
 // ─── Upload Preview ───────────────────────────────────────────────────────────
 
-// Armazena todas as fotos acumuladas
+const MAX_FOTOS = 15;
+const MAX_IMG_PX = 1024;
+const MAX_IMG_KB = 150;
+
 let fotosAcumuladas = [];
 let fotosProva = [];
 
-function adicionarFotos(input) {
-  if (!input.files || input.files.length === 0) return;
-  Array.from(input.files).forEach(file => {
-    fotosAcumuladas.push(file);
+function comprimirImagem(file) {
+  return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = e => {
-      const preview = document.getElementById('foto-preview');
-      if (preview) {
-        preview.innerHTML += `<img src="${e.target.result}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
-      }
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width, h = img.height;
+        if (w > MAX_IMG_PX || h > MAX_IMG_PX) {
+          if (w > h) { h = Math.round(h * MAX_IMG_PX / w); w = MAX_IMG_PX; }
+          else { w = Math.round(w * MAX_IMG_PX / h); h = MAX_IMG_PX; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', 0.75);
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   });
 }
 
+function adicionarFotos(input) {
+  if (!input.files || input.files.length === 0) return;
+  Array.from(input.files).forEach(async file => {
+    if (fotosAcumuladas.length >= MAX_FOTOS) return;
+    const comprimida = await comprimirImagem(file);
+    fotosAcumuladas.push(comprimida);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('foto-preview');
+      if (preview) {
+        const n = fotosAcumuladas.length;
+        preview.innerHTML += `<div style="position:relative;display:inline-block;margin:4px"><img src="${e.target.result}" style="max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;"><span style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;border-radius:4px;padding:1px 4px">${n}</span></div>`;
+      }
+    };
+    reader.readAsDataURL(comprimida);
+  });
+}
+
 function adicionarFotosProva(input) {
   if (!input.files || input.files.length === 0) return;
-  Array.from(input.files).forEach(file => {
-    fotosProva.push(file);
+  Array.from(input.files).forEach(async file => {
+    if (fotosProva.length >= MAX_FOTOS) return;
+    const comprimida = await comprimirImagem(file);
+    fotosProva.push(comprimida);
     const reader = new FileReader();
     reader.onload = e => {
       const preview = document.getElementById('prova-foto-preview');
       if (preview) {
-        preview.innerHTML += `<img src="${e.target.result}" style="margin:4px;max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;">`;
+        const n = fotosProva.length;
+        preview.innerHTML += `<div style="position:relative;display:inline-block;margin:4px"><img src="${e.target.result}" style="max-width:100px;max-height:100px;border-radius:8px;object-fit:cover;"><span style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;border-radius:4px;padding:1px 4px">${n}</span></div>`;
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(comprimida);
   });
 }
 

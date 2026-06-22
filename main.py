@@ -345,7 +345,7 @@ def gerar_resumo_e_quiz(materia: str, capitulo: str, conteudo: str, trimestre: s
     if fotos:
         import base64
         media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif"}
-        for fp in fotos[:5]:
+        for fp in fotos[:15]:
             if Path(fp).exists():
                 with open(fp, "rb") as f:
                     img_data = base64.standard_b64encode(f.read()).decode("utf-8")
@@ -756,7 +756,7 @@ def gerar_guia_prova(materia: str, trimestre: str, topicos: str,
     conteudo_msg = []
     if fotos:
         import base64
-        for fp in fotos[:5]:
+        for fp in fotos[:15]:
             if Path(fp).exists():
                 with open(fp, "rb") as f:
                     img_data = base64.standard_b64encode(f.read()).decode("utf-8")
